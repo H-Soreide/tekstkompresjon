@@ -1,4 +1,5 @@
-include /usr/lib/icu/Makefile.inc
+#include /usr/lib/icu/Makefile.inc
+include /usr/lib/x86_64-linux-gnu/icu/Makefile.inc
 
 CFLAGS=-Os -g -march=native
 CC=clang
@@ -23,8 +24,8 @@ clean:
 icu-clean:
 	rm -f obj/* icu-pakk
 							
-aritkod: aritkod.c
-	$(CC) $(CFLAGS) -o $@ aritkod.c
+#aritkod: aritkod.c
+#	$(CC) $(CFLAGS) -o $@ aritkod.c
 
 zap: zap.cpp zap.hpp
 	$(CXX) $(CFLAGS)  -lm -march=native -o $@ zap.cpp
