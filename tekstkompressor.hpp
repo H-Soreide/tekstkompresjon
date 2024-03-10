@@ -46,10 +46,6 @@ skriv2(), et blindspor
 //Sannsynligvis lite å hente på tuning her.
 #define NULLSERIE 10
 
-
-
-
-
 class tekstkompressor;
 class ordtre;
 class ord;
@@ -276,6 +272,8 @@ class tekstkompressor : public aritkode {
 	void kod_tekst1();
 	void kod_tekst2();
 	void kod_tekst3();
+	void kod_tekst_neste_ord();
+	void kod_tekst_først_setn();
 
 	void antallstats(int *liste, int ant, ordtre *tre);
 
