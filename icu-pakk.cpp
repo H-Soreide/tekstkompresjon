@@ -4372,8 +4372,8 @@ Mulig bedre løsning: undertrykk feil setningsslutt!!!
 
 
   // HS ============================================
-
-		hs_stat2();
+	// I BRUK: 
+		hs_stat2(); 
 
 
 	//} 
