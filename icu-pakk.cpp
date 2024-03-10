@@ -7,6 +7,7 @@
 #include <cassert>
 
 #include "tekstkompressor.hpp"
+#include <string.h>
 using namespace icu;
 
 /*
@@ -1863,9 +1864,9 @@ void tekstkompressor::skriv5(ordtre *tre, ordtre *bakltre) {
 	listestat stat_endelse(0, max_endelse);
 	listestat stat_txt(1, 255);
 
-	//Finn suffixordene i den sorterte rekkefølgen, og avstandene imellom
-	//suffix 0: ikke suffix
-	//suffix 1: første suffix i lista, osv
+	// Finn suffixordene i den sorterte rekkefølgen, og avstandene imellom
+	// suffix 0: ikke suffix
+	// suffix 1: første suffix i lista, osv
 	int suffnr = 0;
 	int maxavst = 1, nesteavst = 1;
 	int forr = -1;
@@ -2883,9 +2884,9 @@ void tekstkompressor::kod_tekst3() {
 	for (int i=0; i<maxordnr;++i) {
 		ord *o = frektre->ordlager->hent(liste[i]);
 		o->nr = i;
-
 		//på skjermen:
 		int antall = o->antall;
+		printf("i:%6i o->antall:%6i     like:%6i   hopp:%i\n", i, forrige_antall, like, antall-forrige_antall);
 		if (antall != forrige_antall) {
 			printf("i:%6i o->antall:%6i     like:%6i   hopp:%i\n", i, forrige_antall, like, antall-forrige_antall);
 			forrige_antall = antall;
@@ -3186,6 +3187,111 @@ void tekstkompressor::kod_tekst2() {
 	// < > matcher perfekt! De nøstes aldri heller.
 	//Ikke []{}(), fordi de brukes i ascii-art og smileys o.l.
 	//Noen måte å håndtere det? Resette telleverk/stacks ved linjeskift?
+}
+
+void tekstkompressor::kod_tekst_først_setn() {
+	int maxordnr = bokstavordtre->lesantall()+tallordtre->lesantall();
+
+	printf("Ordlager:\n  maxordnr: %d\n", maxordnr);
+
+	int freq_table[maxordnr][maxordnr];
+	memset(freq_table, 0, maxordnr * maxordnr * sizeof(int));
+
+	nonordtre->merk(0, 0);
+	bokstavordtre->merk(1, 0);
+	tallordtre->merk(2, bokstavordtre->lesantall());
+
+	char start = 1;
+	int dybde = 0;
+
+	for (int i = 0; i < ant_ord; i++) {
+		ord *o = tekst[i];
+
+		if (o->typ == 0 && data[o->fra] == '.')
+
+		if (o->typ == 0)
+			continue;
+
+		int n = 1;
+		while (i+n < ant_ord) {
+			if (tekst[i+n]->typ != 0) {
+				printf("freq_table['%.*s']['%.*s'], ", o->lengde(), data + o->fra, tekst[i+n]->lengde(), data + tekst[i+n]->fra);
+				printf("freq_table[%d][%d]\n", o->nr, tekst[i+n]->nr);
+				freq_table[o->nr][tekst[i+n]->nr]++;
+				break;
+			}
+			n++;
+		}
+		// if (i < ant_ord-2 && tekst[i+1]->typ == 0) {
+		// 	freq_table[o->nr][tekst[i+2]->nr]++;
+		// }
+	}
+
+	printf("Freq Table:\n");
+	for (int i = 0; i < maxordnr; i++) {
+		printf("  i: %d: [ ", i);
+		for (int y = 0; y < maxordnr; y++) {
+			printf("%d, ", freq_table[i][y]);
+		}
+		printf("]\n");
+	}
+
+}
+
+void tekstkompressor::kod_tekst_neste_ord() {
+	// int antbokstavord = bokstavordtre->lesantall();
+	int maxordnr = bokstavordtre->lesantall()+tallordtre->lesantall();
+
+	printf("Ordlager:\n  maxordnr: %d\n", maxordnr);
+
+	int freq_table[maxordnr][maxordnr];
+	memset(freq_table, 0, maxordnr * maxordnr * sizeof(int));
+
+	nonordtre->merk(0, 0);
+	bokstavordtre->merk(1, 0);
+	tallordtre->merk(2, bokstavordtre->lesantall());
+
+	for (int i = 0; i < ant_ord; i++) {
+		ord *o = tekst[i];
+
+		if (o->typ == 0)
+			continue;
+
+		int n = 1;
+		while (i+n < ant_ord) {
+			if (tekst[i+n]->typ != 0) {
+				printf("freq_table['%.*s']['%.*s'], ", o->lengde(), data + o->fra, tekst[i+n]->lengde(), data + tekst[i+n]->fra);
+				printf("freq_table[%d][%d]\n", o->nr, tekst[i+n]->nr);
+				freq_table[o->nr][tekst[i+n]->nr]++;
+				break;
+			}
+			n++;
+		}
+		// if (i < ant_ord-2 && tekst[i+1]->typ == 0) {
+		// 	freq_table[o->nr][tekst[i+2]->nr]++;
+		// }
+	}
+
+	printf("Freq Table:\n");
+	for (int i = 0; i < maxordnr; i++) {
+		printf("  i: %d: [ ", i);
+		for (int y = 0; y < maxordnr; y++) {
+			printf("%d, ", freq_table[i][y]);
+		}
+		printf("]\n");
+	}
+
+	// exit(0);
+
+	for (int i = 0; i < ant_ord; ++i) {
+		ord *o = tekst[i];
+		//printf("Ord Nr: %d\n", o->nr);
+		// printf("TYP: %d\n", o->typ);
+		//if (o->typ == 0) {
+		//	continue;
+		//}
+		printf("i: %d, nr: %d, ord:,'%.*s', FRA: %d, LENGDE %d\n", i, o->nr, o->lengde(), data + o->fra, o->fra, o->lengde());
+	}
 }
 
 /*
@@ -3608,7 +3714,8 @@ Mulig bedre løsning: undertrykk feil setningsslutt!!!
 
 	//dump_tekst(); //Sjekk med diff, at fila er korrekt representert. OK
 	//kod_tekst1();
-	kod_tekst3();
+	// kod_tekst3();
+	kod_tekst_neste_ord();
 
 	kod_avslutt();
 	fclose(ut);
