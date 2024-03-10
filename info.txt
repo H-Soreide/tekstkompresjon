@@ -1,0 +1,89 @@
+
+
+Noen artikler om aritmetisk koding:
+https://en.wikipedia.org/wiki/Arithmetic_coding
+https://www.hpl.hp.com/techreports/2004/HPL-2004-76.pdf
+https://go-compression.github.io/algorithms/arithmetic/
+
+Wikipediaartikkelen er bra. Mer stoff kan finnes med google o.l.
+
+TESTDATA
+enwik8 100MB (10⁸ byte) fra engelsk wikipedia. Beste kompresjon: 15MB
+enwik9   1GB (10⁹ byte) fra engelsk wikipedia  Beste kompresjon: 111MB
+Disse filene er enkle å finne på nett.
+Har også noen mindre tekstfiler som er public domain:
+Twenty_thousand_leagues_under_the_sea.txt, The_hound_of_the_Baskervilles.txt
+
+KILDEKODE
+Kompileres med «make» og «clang++»
+Trenger libicu, biblioteket «International Components for Unicode library». Dette biblioteket brukes for å dele tekst opp i «avsnitt», «setninger», «ord», «tallord» og «skilletegn».  Skilletegn er mellomrom, tab, punktum, utropstegn og alt annet som ikke er ord/tall. En setning er en serie ord med skilletegn imellom, som slutter med punktum/utropstegn/spørsmål.
+
+Det fine med libicu er at det virker for alle språk og skriftsystemer. Det håndterer både våre bokstaver, og alt annet som russisk og kinesisk. Et av målene mine er at dette skal virke for alle språk. Og selv engelsk wikipedia inneholder mange skriftsystemer, fordi navn på personer og steder skrives på originalspråket.
+
+Kildekode:
+Makefile
+Oppsett for å kompilere med kommandoen «make»
+
+icu-pakk.cpp
+Pakkeprogrammet mitt. Leser hele inputfila inn i memory som bytearray. Bruker libicu for å finne ut hvor ord og setninger begynner og slutter. Når dette er gjort, ser vi på data som «bytes», ikke lenger «unicode». Skriver ordlista til komprimert fil. Har begynt på kode for å skrive antall for hvert ord til komprimert fil. Deretter blir det å skrive alle andre statistiske modeller til den komprimerte fila, og deretter filinnhold (ordnumre og skilletegnsnumre, ved hjelp av aritmetisk komprimering og statistikkene.)
+Fila inneholder også en del historikk i form av mislykkede forsøk. Man har en idé, men i møte med enwik8 er ikke alle idéer like gode...
+
+utpakk.cpp
+Utpakkingsprogram. Ikke påbegynt, trengs bare hvis vi oppnår god nok kompresjon...
+
+aritkode.hpp
+aritkode.cpp
+Mitt bibliotek for aritmetisk koding. (Brukes også av andre programmer jeg har.)
+
+tekstkompressor.hpp
+tekstkompressor.cpp
+Disse filene samler ting som blir felles for innpakkingsprogrammet og utpakkingsprogrammet. Bl.a. parametre for tuning av kompresjonen.
+
+BRUKE PROGRAMMET
+./icu-pakk inputfil.txt outputfil.z
+Kommandoen leser inputfila, og komprimerer. Enn så lenge inneholder outputfila bare ordlista, og statistikker som trengs for å pakke den ut.
+På skjermen skrives en statistikk over setningene i input.
+
+./icu-pakk -6 inputfil.txt outputfil.z
+Med parameter -6: som over, og i tillegg får vi en liste over hvor mange ord det var med ulike lengder. Har brukt dette for å planlegge hvordan slike lengder kan lagres effektivt.
+
+./icu-pakk -7 inputfil.txt outputfil.z
+Med parameter -7: som parameter -6, og i tillegg skriver programmet ut ordlista for inputfila. Dette var nyttig for arbeidet med ordlistekompresjon.
+
+./icu-pakk -8 inputfil.txt outputfil.z
+Med parameter -8: som -7, og i tillegg skrives input setning for setning. Var nyttig for å debugge oppdeling i setninger.
+
+./icu-pakk -9 inputfil.txt outputfil.z
+Med parameter -9: som -8, og i tillegg vises hvordan setningene deles opp i ord. Var også nyttig for debugging.
+
+METODER FOR ARITMETISK KODING
+Implementert i aritkode.cpp. For alle kod_...() metoder, finnes en tilsvarende dekod_...() som pakker ut informasjonen. Alle beregninger gjøres med heltall, for hastighet.
+
+
+kod_intervall(int p_lo, int p_hi, int p_cnt)
+Lavnivåmetode som brukes av de andre kod_...()-metodene. Hele det mulige intervallet går fra 0 til p_cnt. Det tilsvarer en sannsynlighet=1. Intervallet som kodes går fra p_lo til p_hi. 0<=p_lo<p_hi<=p_cnt. «p» står for probability, en sannsynlighet. Kodingen er optimal; jo større del intervallet p_lo..p_hi er av intervallet 0..p_cnt, jo færre bits trengs.
+Antall bits brukt i output: log2( p_cnt / (p_hi-p_lo) ).  Sannsynligheten for et intervall er (p_hi-p_lo)/p_cnt, antall bits er altså log2(1/sannsynlighet)
+
+kod_tall(int tall, int min, int max)
+Koder et heltall når vi trenger å lagre det, og alle tall i intervallet min..max er like sannsynlige. min<=tall<=max.  Det forutsettes altså at vi (og utpakker) vet øvre og nedre grense for hva dette tallet kan være. Grensene bør være trangest mulig, da brukes færrest mulig bits for å lagre tallet. Alle tall i komprimerte tekstfiler er ihvertfall begrenset av antall byte i originalfila, men som regel har vi bedre grenser enn det.
+Antall bits brukt i output: log2(max-min+1)
+
+kod_sjanse(bool sjanse, int x, int P)
+«sjanse» er true eller false. Hvis sjansen for «true» er x av P, vil dette kodes optimalt. 0<x, x<P
+
+
+kod_tall() brukes mye for å lagre statistikkdata så kompakt som mulig.
+
+kod_intervall() brukes for å kode symboler vi har en statistisk modell for. (Symboler kan f.eks. være en serie ordnumre) Om vi trenger å kode en serie symboler med ulike sannsynligheter, får hvert symbol sitt intervall. Intervallbredden matcher sannsynligheten for for symbolet. Intervallene følger etter hverandre, ett begynner der det forrige sluttet. p_cnt blir summen av lengden på alle disse intervallene. Hvert symbol får sin p_lo og p_hi som kan brukes for å kode det.
+
+zipfil med kildekode vedlagt.
+
+Helge Hafting
+
+
+
+HS:
+clang++ aritkode.cpp tekstkompressor.cpp icu-pakk.cpp -licuuc -licui18n
+
+
+

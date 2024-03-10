@@ -63,6 +63,11 @@ class ord {
 	int til; //Til og med
 	int antall; 
 
+// -----------------------
+	// HS
+	int hyppig;
+	// -------------------------
+
 	//Håndtering av felles prefix
 	union {
 		unsigned short overlapp; //# bytes like med forrige ord i alf. liste
@@ -98,6 +103,9 @@ class ord {
 	int lengde();
 	void ny(int f, int t, int ant);
 	void entil(int ant);
+	// HS --------------------------------------
+	void sett_hyppig(int index); 
+	// --------------------------------------
 	friend class ordtre;
 	friend class trenode;
 };
@@ -169,6 +177,7 @@ class listestat {
 	void ixsort(); //Lag rekkefølge for nivå1
 
 	friend class tekstkompressor;
+	friend class ordtre;  // HS! 
 };
 
 
@@ -208,6 +217,8 @@ class ordtre {
 	int single;			//Antall ord som bare står 1 gang
 	int maxlengde; 	//Lengden på det lengste ordet
 
+	int hyppig; //HS
+
 	int sammenlign1(int fra, int const til, ord *o);
 	int sammenlign_bakl(int const fra, int til, ord *o); //baklengs
 	int sammenlign_shortlex(int fra, int til, ord *o);
@@ -224,6 +235,13 @@ class ordtre {
 	inline float snittreps() { return (float)total/lesantall(); }
 	inline int lesmaxlengde() { return maxlengde; }
 
+	inline int leshyppig() {return hyppig;}   //HS
+	int finn_hyppigste();		// HS
+	int *hyppigste;   // HS tabell med hyppigste ordnumre.
+	listestat **folger_stat;  // HS
+	listestat *ordfordeling; // HS
+	int tell_statistikk_hs(int fra, int til);
+
 	void nyord2(int ordnr);
 	void nyord3(int ordnr);
 	int nyord(int fra, int til, ordtre *baklengstre, int ant);
@@ -234,6 +252,43 @@ class ordtre {
 	friend class tekstkompressor;
 };
 
+
+//HS:  -------------------------------------------------------
+
+class tekstnode {
+	tekstnode *neste, *forrige;
+	//'*forrige'  Kan kanskje finne en vei rundt ? Kun der for å få lagt til 'nest-sist' setningsposisjon. 
+
+	int fra;
+	int til;
+	int setn_pos;
+	int komma_pos;
+	int setn_nr;   // Midlertidig, trengs nok ikke. 
+
+	public:
+	tekstnode(int fra, int til, int setn_pos, int komma_pos, int setn_nr);
+	friend class linket_tekst;
+	friend class tekstkompressor;
+
+};
+
+class linket_tekst {
+	tekstnode *hode;
+	tekstnode *hale;
+	int ant_komma; 
+
+	public:
+	linket_tekst();
+	void legg_til(int fra, int til, int setn_pos, int komma_pos, int setn_nr);
+	void skriv_ut();
+	int les_ant_setn() {return hode->setn_nr;}
+	int leskomma() {return ant_komma;};
+	void et_komma_til() {++ant_komma;};
+
+	friend class tekstkompressor;
+};
+
+// HS -----------------------------------------------
 
 
 class tekstkompressor : public aritkode {
@@ -252,6 +307,11 @@ class tekstkompressor : public aritkode {
 
 	ord **tekst; //Hele teksten, ordene i rekkefølge
 	int ant_ord;
+
+	// HS:
+	int *setninger;   // 0, 1.setn->til, 2.setn->til, ... (lengde lik ant_setn +1)
+	int ant_setn;
+
 
 	void skrivtxtstat1(listestat *txt, listestat txt1[256]);
 
@@ -284,7 +344,16 @@ class tekstkompressor : public aritkode {
 	void reg_tekst(ord *o);
 	void pakk();
 	void pakkut();
-	
+
+// HS------------------------------------------------------------------
+	//int tell_statistikk_hs(int fra, int til, ordtre *tre);
+	void reg_setn(int end);   // Legger til setnings->til nummer i 'setninger'
+	//-----
+	linket_tekst *lt;
+	void hs_stats(linket_tekst *lt, ordtre *tre);
+	void hs_stat2();
+
+	// HS -----------------------------------------------------
 };
 
 #endif

@@ -17,6 +17,9 @@ tekstkompressor::tekstkompressor(char const *innf, char const *utf, bool pakkinn
 	if (!ut) throw("i/o utfil");
 	tekst = new ord*[500000000]; //50000000 Nok for enwik8. Mer for enwik9
 	ant_ord = 0;
+	//HS:
+	setninger = new int[10000000];  // 5 ord per setning om antall ord er lik grensen satt over. 
+	ant_setn = 0;
 }
 
 listestat::listestat(unsigned int pmin, unsigned int pmax) {
