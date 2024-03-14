@@ -232,12 +232,14 @@ void tekstkompressor::hs_stat2() {
 
 // Del 1 slutt
 // --------------------------
+// Del 2 - fylle opp statistikkene
 
 	// Listestatene opprettes med kapasitet lik antall ord, men de kan kanskje sorteres og 'kappes' seinere slik at kun signifikante frekvenser tas med? 
 	listestat* forste_ord = new listestat(0, bokstavordtre->ordlager->les_antall());   // Skulle hatt lengde lik ant. setninger?
 	listestat* pre_komma = new listestat(0, bokstavordtre->ordlager->les_antall());  
 	listestat* post_komma = new listestat(0, bokstavordtre->ordlager->les_antall());  
 	listestat* stat_ord = new listestat(0, bokstavordtre->ordlager->les_antall());  
+	listestat* siste_ord = new listestat(0, bokstavordtre->ordlager->les_antall());  
 	
 	int s = 1;   // 'setningsiterator'  - setningenes endepunkter på hver indeks (punkter i 'data')
 	int k =0;   // indeks i 'tekst' - ett ord per indeks
@@ -267,7 +269,8 @@ void tekstkompressor::hs_stat2() {
 				stat_ord->tell(bokstavordtre->oppslag(o->fra, o->til));
 
 				if (ny_setning) {
- 					forste_ord->tell(bokstavordtre->oppslag(o->fra, o->til));   
+ 					forste_ord->tell(bokstavordtre->oppslag(o->fra, o->til));
+					siste_ord->tell(bokstavordtre->oppslag(forrige->fra, forrige->til));   
 					ny_setning = false;
 
 				} else if (forrige->hyppig >= 0) {
@@ -326,6 +329,9 @@ void tekstkompressor::hs_stat2() {
 	post_komma->akkumuler();
 	post_komma->finnmax();	
 	post_komma->ixsort();
+	siste_ord->akkumuler();
+	siste_ord->finnmax();
+	siste_ord->ixsort();
 
 	stat_ord->akkumuler();
 	stat_ord->finnmax();	
@@ -333,9 +339,10 @@ void tekstkompressor::hs_stat2() {
 	
 
 	// Noen eksempelverdier
-	printf("\nFørste: Totalt:  %i  Høyeste reksvens:  %i\n", forste_ord->fsum, forste_ord->max_f);
+	printf("\nFørste ord: Totalt:  %i  Høyeste reksvens:  %i\n", forste_ord->fsum, forste_ord->max_f);
 	printf("\nFør-komma: Totalt:  %i  Høyeste reksvens:  %i\n", pre_komma->fsum, pre_komma->max_f);
 	printf("\nEtter-komma: Totalt:  %i  Høyeste reksvens:  %i\n", post_komma->fsum, post_komma->max_f);
+	printf("\nSiste ord: Totalt:  %i  Høyeste reksvens:  %i\n", siste_ord->fsum, siste_ord->max_f);
 
 
 	 	printf("\nAkkumulert (etter komma):   sum: %i \n", post_komma->fsum);
@@ -429,8 +436,8 @@ void tekstkompressor::hs_stat2() {
 			}
 		}
 		
-		if (round==0) fprintf(p, ",forste,pre-komma,post-komma\n");
-		if (round==0) fprintf(raw, ",forste,pre-komma,post-komma\n");
+		if (round==0) fprintf(p, ",forste,siste,pre-komma,post-komma\n");
+		if (round==0) fprintf(raw, ",forste,siste,pre-komma,post-komma\n");
 		++round;
 	}
 
@@ -446,16 +453,17 @@ void tekstkompressor::hs_stat2() {
 			fprintf(raw, ", %i", bokstavordtre->folger_stat[s]->tab[y]);
 		}
 		
-		fprintf(p, ", %i, %i, %i\n", forste_ord->tab[forste_ord->ix[y]], pre_komma->tab[pre_komma->ix[y]], post_komma->tab[post_komma->ix[y]]);
-		fprintf(raw, ", %i, %i, %i\n", forste_ord->tab[y], pre_komma->tab[y], post_komma->tab[y]);
+		fprintf(p, ", %i, %i, %i, %i\n", forste_ord->tab[forste_ord->ix[y]], siste_ord->tab[siste_ord->ix[y]], pre_komma->tab[pre_komma->ix[y]], post_komma->tab[post_komma->ix[y]]);
+		fprintf(raw, ", %i, %i, %i, %i\n", forste_ord->tab[y], siste_ord->tab[y], pre_komma->tab[y], post_komma->tab[y]);
 	}
 
 	fclose(p); 
 	fclose(raw); 
 }
 
+
 // Ende på hs_stat2  (i bruk)
-// ===================================================================
+// ===================================================================  HS
 
 /*
 	Metoder for listestat
