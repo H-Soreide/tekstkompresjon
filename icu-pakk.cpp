@@ -213,9 +213,11 @@ void tekstkompressor::hs_stat2() {
 	
 	int v = 0;
 	printf("\nCut-off: %i\n", cutoff);
+	int sum_hyppigste = 0;
 
 	while (b->antall > cutoff) {
 		b->sett_hyppig(v);
+		sum_hyppigste += b->antall;
 		printf("Ord lagt til hyppigste (Frekv.: %3i, hyppig-nr: %i):  ", b->antall, v);
 		skriv(b->fra, b->til);
 		printf("\n");
@@ -230,20 +232,49 @@ void tekstkompressor::hs_stat2() {
 		// printf("Folger_stat[%i] opprettet.\n",j);
 	} 
 
+	// Tillegg til del 1: HS
+	// En cut-off på hvilke ord det er 'verdt' å telle opp. F.eks teller bare opp ord blant de ord som forekommer til sammen 80% av tiden. 
+	// Sjeldne ord telles ikke opp, og sannsynligheten deres forblir den globale 0.-ordens. 
+	// Videre vil det sannsynligvis være rom for optimering av logikken som teller opp listestat i Del 2 som unngår å sjekke ordenes antall unødig ofte. 
+	// Cut-off for ord verdt å telle opp i listestatene.   (Kan nok slås sammen på et vis med logikken over, men adskilt for nå.)
+
+	int akk_hyppige = 0;
+	float cut_off_prosent = 0.8f;
+	ord *ord_verd_telling = bokstavordtre->ordlager->hent(bokstavordtre->ordfordeling->ix[0]);   // Starter med å telle hyppigste ord
+	int ant = 0;
+	int cut_off_total = (int)(bokstavordtre->lestotal() * cut_off_prosent + 0.5f);
+
+
+	while (akk_hyppige < cut_off_total) {
+		akk_hyppige +=  ord_verd_telling->antall;
+		ord_verd_telling = bokstavordtre->ordlager->hent(bokstavordtre->ordfordeling->ix[++ant]);
+	}
+	int cut_off_verdt_telling = ord_verd_telling->antall;
+
+	printf("Ord som utgjør til sammen 80 pct. av tekstens volum har frekvenser på minimum:  %i. Det er %i ord med lik eller høyere frekvens av total %i unike ord.\n", cut_off_verdt_telling, ant, bokstavordtre->lesantall());
+
+
+
 // Del 1 slutt
 // --------------------------
 // Del 2 - fylle opp statistikkene
 
+	// Core dump pga en av .tell-kallene: Kan dette være pga [k+2] ? 
+
 	// Listestatene opprettes med kapasitet lik antall ord, men de kan kanskje sorteres og 'kappes' seinere slik at kun signifikante frekvenser tas med? 
 	listestat* forste_ord = new listestat(0, bokstavordtre->ordlager->les_antall());   // Skulle hatt lengde lik ant. setninger?
+	listestat* andre_ord = new listestat(0, bokstavordtre->ordlager->les_antall()); 
 	listestat* pre_komma = new listestat(0, bokstavordtre->ordlager->les_antall());  
 	listestat* post_komma = new listestat(0, bokstavordtre->ordlager->les_antall());  
 	listestat* stat_ord = new listestat(0, bokstavordtre->ordlager->les_antall());  
 	listestat* siste_ord = new listestat(0, bokstavordtre->ordlager->les_antall());  
+	listestat* nest_siste_ord = new listestat(0, bokstavordtre->ordlager->les_antall());  
 	
 	int s = 1;   // 'setningsiterator'  - setningenes endepunkter på hver indeks (punkter i 'data')
 	int k =0;   // indeks i 'tekst' - ett ord per indeks
 	int l =0;   // indeks som holder orden på posisjon i forhold til 'data', inkrementeres med ordlengden (bokstav, nonord og tallord) i hver iterasjon. Når den overgår setningens endepunkt er vi i ny setning. 
+
+	printf("Lengd epå 'tekst' (maks k-verdi): %i ", ant_ord);
 
 	int oppslag = -1;
 
@@ -252,14 +283,33 @@ void tekstkompressor::hs_stat2() {
 	int forrige_i = 0;    // indeks til forrige ord
 	bool ny_setning = true;   // settes true når l blir større enn enden på setningen vi er i. 
 	int forrige_ordnr = -1;    // Ordnummer til forrige ord
+	bool forste_passert = false;
 
-	while ( s <= ant_setn ){  // Går til enden av teksten 
+	int test;
+
+	for (int y = 1; y < 10; ++y) {
+		printf("\n ----------  Setning:  %i\n", y-1);
+		skriv(setninger[y-1], setninger[y]);
+		printf("\n");
+	}
+		
+
+
+	// org:  while ( s <= ant_setn && k < ant_ord){
+	while ( s <= ant_setn && k < ant_ord){  // Går til enden av teksten 
 	// - alle grenser må dobbeltsjekkes! Sannsynlig at siste setning/ord ikke kommer med på et eller annet tidspunkt. 
 	// Kommentarer heretter som ikke ligger på linje med kode, er sannsynligvis kommentert-ut utskrift som kan un-kommentes for å skrive ut mer
 
 		//	printf("\n ---- setn-nr: %3i  setn-start:  %5i  setn-end: %5i\n",  s, setninger[s-1], setninger[s]);
 
+		printf("\n ----------  Setning:  %i\n", s-1);
+		skriv(setninger[s-1], setninger[s]);
+		printf("\n");
+
+		// Byttet ut org: while ( l < setninger[s]) 
 		while ( l < setninger[s]) { // går fra 0 til enden av første setning, deretter fra neste verdi til enden på neste setning osv.
+		
+
 			if(o->typ == 1) {  // Bokstavord
 			//	printf("I s-nr: %i  ", s);
 			//	printf("o-nr i tekst:  %3i  o-til:  %4i  o-l:  %2i ord-typ:  %u ORD:  ",  k, o->til, o->lengde(), o->typ);
@@ -270,34 +320,90 @@ void tekstkompressor::hs_stat2() {
 
 				if (ny_setning) {
  					forste_ord->tell(bokstavordtre->oppslag(o->fra, o->til));
-					siste_ord->tell(bokstavordtre->oppslag(forrige->fra, forrige->til));   
+					forste_passert = true;
+					printf("Første ord:  ");
+						skriv(o->fra, o->til);
+						printf("\n");
+
+					if (s > 1) {
+						siste_ord->tell(bokstavordtre->oppslag(forrige->fra, forrige->til));   // MARKER!			
+						printf("\nSiste ord:   ");
+						skriv(forrige->fra, forrige->til); 
+						skriv(tekst[forrige_i]->fra, tekst[forrige_i]->til);
+
+						if (tekst[forrige_i-1]->typ ==1) {
+							printf("Nest siste ord 1:  ");
+							skriv(tekst[forrige_i-1]->fra, tekst[forrige_i-1]->til);
+							printf("\n");
+									
+							//nest_siste_ord->tell(bokstavordtre->oppslag(tekst[forrige_i-1]->fra, tekst[forrige_i-1]->til));
+
+						} else if (tekst[forrige_i-2]->typ ==1) {
+							printf("\n");
+							printf("Nest siste ord 2:    ");
+							//nest_siste_ord->tell(bokstavordtre->oppslag(tekst[k-2]->fra, tekst[k-2]->til));
+							skriv(tekst[k-2]->fra, tekst[k-2]->til);
+							printf("  etter:  ");
+							skriv(forrige->fra, forrige->til);
+							printf("\n");
+						}
+					}
+				
 					ny_setning = false;
 
-				} else if (forrige->hyppig >= 0) {
-					// printf("Forrige ord var blant de hyppigste! \n");
-					// printf("Forrige var på liste nr. %i blant folger_stat listene. Ordet etter er ordnr: %i\n", forrige->hyppig, bokstavordtre->oppslag(o->fra, o->til) );
-					//	skriv(forrige->fra,forrige->til);
-					//	skriv(o->fra, o->til);
-					//	printf("\n");
-					bokstavordtre->folger_stat[forrige->hyppig]->tell(bokstavordtre->oppslag(o->fra, o->til));
+				} else {
+
 					
+					
+					if (forrige->hyppig >= 0) {
+						printf("k:  %i   s:  %i\n", k, s);
+						// printf("Forrige ord var blant de hyppigste! \n");
+						printf("Forrige var på liste nr. %i blant folger_stat listene. Ordet etter er ordnr: %i\n", forrige->hyppig, bokstavordtre->oppslag(o->fra, o->til) );
+						skriv(forrige->fra,forrige->til);
+						skriv(o->fra, o->til);
+						printf("\n");
+						bokstavordtre->folger_stat[forrige->hyppig]->tell(bokstavordtre->oppslag(o->fra, o->til));
+						
+					} else if (forste_passert) {
+						printf("k:  %i   s:  %i\n", k, s);
+						andre_ord->tell(bokstavordtre->oppslag(o->fra, o->til));
+						printf("Andre ord:  ");
+						skriv(o->fra, o->til);
+						printf("\n");
+						forste_passert = false;
+					}
 				}
+
 
 				forrige = tekst[k]; 
 				forrige_ordnr = bokstavordtre->oppslag(forrige->fra, forrige->til);
 				forrige_i=k;
 
+			// Undersøk mulige løsninger for ord midt mellom to komma. 
 			} else if (o->typ == 0 && data[o->fra] == ',') {
 				//printf("FANT ET KOMMA!: ");
 				//skriv(tekst[k]->fra, tekst[k]->til); 
 				//printf("\n"); 
 				if(forrige->typ == 1) {
+					printf("Ord før komma: ");
+					skriv(forrige->fra, forrige->til);
+					printf("\n");
 					pre_komma->tell(bokstavordtre->oppslag(forrige->fra, forrige->til)); 
+				
 				}
 				if (tekst[k+1]->typ == 1) {
+					printf("Ord etter komma: ");
+					skriv(tekst[k+1]->fra, tekst[k+1]->til);
+					printf("\n");
 					post_komma->tell(bokstavordtre->oppslag(tekst[k+1]->fra, tekst[k+1]->til)); 
+					
 				}else if (tekst[k+2]->typ == 1 ) {
+					// Obs:  oppslag gir -1 om ordet ikke finnes. (som kanskje skjer når vi prøver å gå på indeks utenfor range til tekst?)
+					printf("Ord etter komma: ");
+					skriv(tekst[k+2]->fra, tekst[k+2]->til);
+					printf("\n");
 					post_komma->tell(bokstavordtre->oppslag(tekst[k+2]->fra, tekst[k+2]->til)); 
+					
 				}
 			}
 			
@@ -307,6 +413,7 @@ void tekstkompressor::hs_stat2() {
 	
 		++s;
 		ny_setning = true;
+		
 	}
 
 
@@ -323,12 +430,20 @@ void tekstkompressor::hs_stat2() {
 	forste_ord->akkumuler();
 	forste_ord->finnmax();	
 	forste_ord->ixsort();	
+	andre_ord->akkumuler();
+	andre_ord->finnmax();	
+	andre_ord->ixsort();	
 	pre_komma->akkumuler();
 	pre_komma->finnmax();	
 	pre_komma->ixsort();
 	post_komma->akkumuler();
 	post_komma->finnmax();	
 	post_komma->ixsort();
+
+	
+	nest_siste_ord->akkumuler();
+	nest_siste_ord->finnmax();
+	nest_siste_ord->ixsort();
 	siste_ord->akkumuler();
 	siste_ord->finnmax();
 	siste_ord->ixsort();
@@ -340,8 +455,10 @@ void tekstkompressor::hs_stat2() {
 
 	// Noen eksempelverdier
 	printf("\nFørste ord: Totalt:  %i  Høyeste reksvens:  %i\n", forste_ord->fsum, forste_ord->max_f);
+	printf("\nAndre ord: Totalt:  %i  Høyeste reksvens:  %i\n", andre_ord->fsum, andre_ord->max_f);
 	printf("\nFør-komma: Totalt:  %i  Høyeste reksvens:  %i\n", pre_komma->fsum, pre_komma->max_f);
 	printf("\nEtter-komma: Totalt:  %i  Høyeste reksvens:  %i\n", post_komma->fsum, post_komma->max_f);
+	printf("\nNest siste ord: Totalt:  %i  Høyeste reksvens:  %i\n", nest_siste_ord->fsum, nest_siste_ord->max_f);
 	printf("\nSiste ord: Totalt:  %i  Høyeste reksvens:  %i\n", siste_ord->fsum, siste_ord->max_f);
 
 
@@ -391,79 +508,87 @@ void tekstkompressor::hs_stat2() {
 // Skrive til filer:   
 // p er sortert statistikk.  raw er ikke sortert slik at frekvensene på hver rad tilhører ordet med samme ordnummer! 
  	FILE* p = fopen("statistikk.txt","w"); 
-	FILE* raw = fopen("raw_stat.txt", "w");
+	FILE* p_raw = fopen("raw_stat.txt", "w");
+
+	FILE* pos = fopen("pos_statistikk.txt","w"); 
+	FILE* pos_raw = fopen("pos_raw_stat.txt", "w");
+
+
+	// bokstavordtre->lesantall() 
+
+	// Legge til antall hyppige og cut-off frekvens øverst i fil
+	fprintf(p, "%i/%i/%i/%i\n", v, cutoff, sum_hyppigste, bokstavordtre->lestotal());   // integer div?
+	fprintf(p_raw, "%i/%i/%i/%i\n", v, cutoff, sum_hyppigste, bokstavordtre->lestotal());
+	fprintf(pos, "%i/%i/%i/%i\n", v, cutoff, sum_hyppigste, bokstavordtre->lestotal());
+	fprintf(pos_raw, "%i/%i/%i/%i\n", v, cutoff, sum_hyppigste, bokstavordtre->lestotal());
 
 	// OBS: Vet ikke om det er perfekt match over frekvensene enda. Vet i hvert fall at det er mismatch for 
 	// før/etter komma bla. på grunn av 'inneklemte' ord mellom to komma, men finnes sikkert flere spesialtilfeller, også i de andre statistikkene?
 
 	fprintf(p, "global");  // global er frekvensene for hvert ord i hele filen
-	fprintf(raw, "global");
+	fprintf(p_raw, "global");
+
 	int fra = 0;
 	int til =0;
 
-	int round = 0;
-
-	while(round < 2) {  // Kan nok skrives om når en har bestemt seg for om total skal være med eller ei... men ikke viktig. 
-
-		if (round ==1) {
-			// skrev også totalen til fil, men har fjernet dette: 
- 			//fprintf(p, "%i", bokstavordtre->ordfordeling->fsum);
-			//fprintf(p, ", %i, %i, %i", forste_ord->fsum, pre_komma->fsum, post_komma->fsum);
-			//fprintf(raw, "%i", bokstavordtre->ordfordeling->fsum);
-			//fprintf(raw, ", %i, %i, %i", forste_ord->fsum, pre_komma->fsum, post_komma->fsum);
+	// Loop gjennom ordene som har følgere for p og p_raw  (headere) -> statistikk.txt og raw_stat.txt
+	for (int head = 0; head < v; ++head) {
+		fra = bokstavordtre->ordlager->hent(bokstavordtre->ordfordeling->ix[head])->fra;
+		til = bokstavordtre->ordlager->hent(bokstavordtre->ordfordeling->ix[head])->til;
+		fputc(',', p);
+		fputc(',', p_raw);
+		if (fra>til) printf("FEIL");
+		else {
+			while (fra <= til) {
+				fputc(data[fra],p_raw);
+				fputc(data[fra++],p);
+			} 
 		}
-
-		for (int head = 0; head < v; ++head) {
-			switch(round) {
-				case 0: 
-					fra = bokstavordtre->ordlager->hent(bokstavordtre->ordfordeling->ix[head])->fra;
-					til = bokstavordtre->ordlager->hent(bokstavordtre->ordfordeling->ix[head])->til;
-					fputc(',', p);
-					fputc(',', raw);
-					if (fra>til) printf("FEIL");
-					else {
-						while (fra <= til) {
-							fputc(data[fra],raw);
-							fputc(data[fra++],p);
-						} 
-					}
-					break;
-				case 1: 
-				// skrev også totalen til fil, men har fjernet dette: 
-				//	fprintf(p, ",%i", bokstavordtre->ordlager->hent(bokstavordtre->ordfordeling->ix[head])->antall);
-				//	fprintf(raw, ",%i", bokstavordtre->ordlager->hent(bokstavordtre->ordfordeling->ix[head])->antall);
-					break;
-			}
-		}
-		
-		if (round==0) fprintf(p, ",forste,siste,pre-komma,post-komma\n");
-		if (round==0) fprintf(raw, ",forste,siste,pre-komma,post-komma\n");
-		++round;
 	}
+	fputc('\n', p);
+	fputc('\n', p_raw);
 
-	//fputc('\n', p);
-	//fputc('\n', raw);
-
+	// Blir headere i statistikk for ord på visse posisjoner i setning. 
+	fprintf(pos, "global,forste,andre,nest-siste,siste,pre-komma,post-komma\n");
+	fprintf(pos_raw, "global,forste,andre,nest-siste,siste,pre-komma,post-komma\n");
+	
+	// Loop over index i listestat for å fylle filene med frekvenser
 	for (int y = 0; y < bokstavordtre->lesantall(); ++y) {
 		fprintf(p, "%i", bokstavordtre->ordfordeling->tab[bokstavordtre->ordfordeling->ix[y]]);
-		fprintf(raw, "%i", bokstavordtre->ordfordeling->tab[y]);
+		fprintf(p_raw, "%i", bokstavordtre->ordfordeling->tab[y]);
+		fprintf(pos, "%i", bokstavordtre->ordfordeling->tab[bokstavordtre->ordfordeling->ix[y]]);
+		fprintf(pos_raw, "%i", bokstavordtre->ordfordeling->tab[y]);
 		
 		for(s=0; s < v; ++s) {
 			fprintf(p, ", %i", bokstavordtre->folger_stat[s]->tab[bokstavordtre->folger_stat[s]->ix[y]]);
-			fprintf(raw, ", %i", bokstavordtre->folger_stat[s]->tab[y]);
+			fprintf(p_raw, ", %i", bokstavordtre->folger_stat[s]->tab[y]);
 		}
+		fputc('\n', p);
+		fputc('\n', p_raw);
 		
-		fprintf(p, ", %i, %i, %i, %i\n", forste_ord->tab[forste_ord->ix[y]], siste_ord->tab[siste_ord->ix[y]], pre_komma->tab[pre_komma->ix[y]], post_komma->tab[post_komma->ix[y]]);
-		fprintf(raw, ", %i, %i, %i, %i\n", forste_ord->tab[y], siste_ord->tab[y], pre_komma->tab[y], post_komma->tab[y]);
+		fprintf(pos, ", %i, %i, %i, %i, %i, %i\n", 
+		forste_ord->tab[forste_ord->ix[y]], andre_ord->tab[andre_ord->ix[y]], nest_siste_ord->tab[nest_siste_ord->ix[y]], 
+		siste_ord->tab[siste_ord->ix[y]], pre_komma->tab[pre_komma->ix[y]], post_komma->tab[post_komma->ix[y]]);
+		
+		fprintf(pos_raw, ", %i, %i, %i, %i, %i, %i\n", 
+		forste_ord->tab[y], andre_ord->tab[y], nest_siste_ord->tab[y], siste_ord->tab[y], pre_komma->tab[y], post_komma->tab[y]);
 	}
 
 	fclose(p); 
-	fclose(raw); 
+	fclose(p_raw); 
+	fclose(pos); 
+	fclose(pos_raw); 
 }
 
 
+// 
+
 // Ende på hs_stat2  (i bruk)
 // ===================================================================  HS
+
+
+
+
 
 /*
 	Metoder for listestat
