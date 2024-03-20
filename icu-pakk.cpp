@@ -197,7 +197,6 @@ void skriv(int fra, int const til) {
 
 
 // HS ===============================================================================================
-// hs_stat2 er i bruk! men litt 'lappeteppe'-struktur. 
 
 void tekstkompressor::hs_stat2() { 
 
@@ -207,25 +206,54 @@ void tekstkompressor::hs_stat2() {
 	bokstavordtre->ordfordeling->ixsort();
 	bokstavordtre->ordfordeling->finnmax();
 
-	int cutoff = bokstavordtre->ordfordeling->max_f / 5;   // Delt på 50 er kanskje ok for enwik8. /5 ok på Hound of Baskervilles
-	// En passelig cut-off kan og bør velges på mer sofistikert vis. Gjerne tenke mer på akkumulert andel av totalen. 
 
+	// To cut-off metoder:  
+	// 1. basert på frekvens til det aller hyppigste bokstavordet. 
+	// 2. basert på et antall hyppigste ord, f.eks 10, 50, 100 hyppigste. 
 
-	
-	int v = 0;
-	printf("\nCut-off frekv. for hyppigste ord: %i\n", cutoff);
+	int metode = 2;
+	int cutoff =20;  // Hvis metode 1: ant. vi deler max_f på, hvis metode 2: antall hyppige ord vi oppretter listestat for. 
+
+	int v = 0; // Denne er viktig!
+	// Starter med det aller hyppigste ordet:
+	ord *b = bokstavordtre->ordlager->hent(bokstavordtre->ordfordeling->ix[0]);  
 	int sum_hyppigste = 0;
 
-	// Starter med det aller hyppigste ordet
-	ord *b = bokstavordtre->ordlager->hent(bokstavordtre->ordfordeling->ix[0]);  
-	while (b->antall > cutoff) {
-		b->sett_hyppig(v);
-		sum_hyppigste += b->antall;
-		printf("Ord lagt til hyppigste (Frekv.: %3i, hyppig-nr: %i):  ", b->antall, v);
-		skriv(b->fra, b->til);
-		printf("\n");
-		b = bokstavordtre->ordlager->hent(bokstavordtre->ordfordeling->ix[++v]);
+
+	if (metode ==1) {
+
+		cutoff= bokstavordtre->ordfordeling->max_f / cutoff;   // Delt på 50 er kanskje ok for enwik8. /5 ok på Hound of Baskervilles
+		
+		printf("\nCut-off frekv. for hyppigste ord: %i\n", cutoff);
+
+	
+		while (b->antall > cutoff) {
+			b->sett_hyppig(v);
+			sum_hyppigste += b->antall;
+			printf("Ord lagt til hyppigste (Frekv.: %3i, hyppig-nr: %i):  ", b->antall, v);
+			skriv(b->fra, b->til);
+			printf("\n");
+			b = bokstavordtre->ordlager->hent(bokstavordtre->ordfordeling->ix[++v]);
 	}
+ 
+	} else if (metode == 2) {
+		printf("\nCut-off antall for hyppigste ord: %i\n", cutoff);
+
+		while (v < cutoff) {
+			b->sett_hyppig(v);
+			sum_hyppigste += b->antall;
+			printf("Ord lagt til hyppigste (Frekv.: %3i, hyppig-nr: %i):  ", b->antall, v);
+			skriv(b->fra, b->til);
+			printf("\n");
+
+			b = bokstavordtre->ordlager->hent(bokstavordtre->ordfordeling->ix[++v]);
+
+		}
+
+	}
+
+
+
 
 	printf("folger_stat opprettes på 'ordtre' med plass til en listestat per hyppige ord:  %i\n", v);
 	bokstavordtre->folger_stat = new listestat*[v];   
@@ -275,13 +303,12 @@ void tekstkompressor::hs_stat2() {
 	listestat* nest_siste_ord = new listestat(0, bokstavordtre->ordlager->les_antall());  
 	listestat* nest_nest_siste_ord = new listestat(0, bokstavordtre->ordlager->les_antall());  
 	
+	printf("\nLengde på 'tekst' (maks k-verdi): %i \n", ant_ord);
+
+
 	int s = 1;   // 'setningsiterator'  - setningenes endepunkter på hver indeks (punkter i 'data')
 	int k =0;   // indeks i 'tekst' - ett ord per indeks
 	long l =0;   // indeks som holder orden på posisjon i forhold til 'data', inkrementeres med ordlengden (bokstav, nonord og tallord) i hver iterasjon. Når den overgår setningens endepunkt er vi i ny setning. 
-
-	printf("\nLengde på 'tekst' (maks k-verdi): %i \n", ant_ord);
-
-	int oppslag = -1;
 
 	ord *o = tekst[k];   // Gjeldende ord
 	ord *forrige = tekst[k];    // Forrige ord
@@ -448,7 +475,7 @@ void tekstkompressor::hs_stat2() {
 	}
 
 	printf("\n\nVi har gått ut av while-løkken! Ferdig med å fylle listestat, nå skrives det til fil dersom 'bool skriv_til_fil == true'. =) \n");
-	bool skriv_til_fil = false;
+	bool skriv_til_fil = true;
 
 
 	if (skriv_til_fil) {
@@ -514,10 +541,10 @@ void tekstkompressor::hs_stat2() {
 		FILE* pos_raw = fopen("pos_raw_stat.txt", "w");
 
 		// Legge til antall hyppige og cut-off frekvens øverst i fil
-		fprintf(p, "%i/%i/%i/%i\n", v, cutoff, sum_hyppigste, bokstavordtre->lestotal());   // integer div?
-		fprintf(p_raw, "%i/%i/%i/%i\n", v, cutoff, sum_hyppigste, bokstavordtre->lestotal());
-		fprintf(pos, "%i/%i/%i/%i\n", v, cutoff, sum_hyppigste, bokstavordtre->lestotal());
-		fprintf(pos_raw, "%i/%i/%i/%i\n", v, cutoff, sum_hyppigste, bokstavordtre->lestotal());
+		fprintf(p, "%i/%i/%i\n", v, sum_hyppigste, bokstavordtre->lestotal());   // integer div?
+		fprintf(p_raw, "%i/%i/%i\n", v, sum_hyppigste, bokstavordtre->lestotal());
+		fprintf(pos, "%i/%i/%i\n", v, sum_hyppigste, bokstavordtre->lestotal());
+		fprintf(pos_raw, "%i/%i/%i\n", v, sum_hyppigste, bokstavordtre->lestotal());
 
 		// OBS: Vet ikke om det er perfekt match over frekvensene enda. Vet i hvert fall at det er mismatch for 
 		// før/etter komma bla. på grunn av 'inneklemte' ord mellom to komma, men finnes sikkert flere spesialtilfeller, også i de andre statistikkene?
