@@ -211,8 +211,9 @@ void tekstkompressor::hs_stat2() {
 	// 1. basert på frekvens til det aller hyppigste bokstavordet. 
 	// 2. basert på et antall hyppigste ord, f.eks 10, 50, 100 hyppigste. 
 
+	// Med metode=2 og cutoff=50 oppretter vi en listestat for de 50 hyppigste ordene og bruker de til å telle frekvens på følger-ord. 
 	int metode = 2;
-	int cutoff =20;  // Hvis metode 1: ant. vi deler max_f på, hvis metode 2: antall hyppige ord vi oppretter listestat for. 
+	int cutoff =5;  // Hvis metode 1: ant. vi deler max_f på, hvis metode 2: antall hyppige ord vi oppretter listestat for. 
 
 	int v = 0; // Denne er viktig!
 	// Starter med det aller hyppigste ordet:
@@ -249,10 +250,7 @@ void tekstkompressor::hs_stat2() {
 			b = bokstavordtre->ordlager->hent(bokstavordtre->ordfordeling->ix[++v]);
 
 		}
-
 	}
-
-
 
 
 	printf("folger_stat opprettes på 'ordtre' med plass til en listestat per hyppige ord:  %i\n", v);
@@ -319,14 +317,17 @@ void tekstkompressor::hs_stat2() {
 	int forrige_i = 0;    // indeks til forrige ord
 	int forrige_i2 = 0;
 	int forrige_i3 = 0;
+	int ord_i_setning = 0;
+	int ord_i_forrige_setning = 0;
 
-	bool debug = false;
+	// Set til true for å få printet ut en del info underveis. 
+	bool debug = true;
 	
 	while ( s <= ant_setn && k < ant_ord){  // Går til enden av teksten 
 	// - alle grenser må dobbeltsjekkes! Sannsynlig at siste setning/ord ikke kommer med på et eller annet tidspunkt. 
 	
 		if(debug) {
-			printf("\nSetning: %i :  ", s+1);
+			printf("\n\nSetning: %i :  ", s+1);
 			skriv(setninger[s-2], setninger[s-1]-1);
 			printf("\n");
 		}
@@ -335,6 +336,8 @@ void tekstkompressor::hs_stat2() {
 		while ( l < setninger[s]) { // går fra 0 til enden av første setning, deretter fra neste verdi til enden på neste setning osv.
 
 			if(o->typ == 1) {  // Bokstavord
+
+				++ord_i_setning;
 
 
 				if (ny_setning) {
@@ -361,7 +364,19 @@ void tekstkompressor::hs_stat2() {
 
 						// Strengt tatt ikke nødvendig å sjekke om ordet på denne indeksen er et bokstavord
 						// - indeksen ble oppdatert i okstavord-loop. 
-						if (tekst[forrige_i2]->typ ==1) {
+						// OBS: Siste-tellingene teller på tvers av flere setninger dersom en setning er kortere enn 3 ord!
+						// Kan ordnes ved å... 
+						// Hvor mange setninger består faktisk av bare 1-3 ord? Tror det finnes utskrift for det ett sted i koden. 
+						// Merk: F.eks "Mrs." i start av setning vil la setningen bestå kun av dette ordet i delingen fra icu.
+						// Jobbe utifra prioritet? 
+						// 1: Første, 2: siste, 3: andre, 4: tredje  5: nest siste  6: nest-nest siste
+						// Fines det måte å måle/vise at det er fornuftig prioriteringsliste? 
+						if (debug && ord_i_forrige_setning <= 3) {
+							printf("----- Forrige setning bestod av 3 ord eller mindre!! -----\n");
+						}
+						
+						if (tekst[forrige_i2]->typ ==1 && ord_i_forrige_setning > 3) {  // Sjekk om i sett setning
+							// Men den vil fortsatt telle 3. ord både som tredje ord og som siste ord om setningen kun er 3 ord lang.. 
 							if (debug) {
 								printf("Nest siste ord:  ");
 								skriv(tekst[forrige_i2]->fra, tekst[forrige_i2]->til);
@@ -374,11 +389,17 @@ void tekstkompressor::hs_stat2() {
 						// Husk å nullstille disse når ferdig med start av setning? 
 						// Men registrerer ende på forrige setning ved start av neste... Pass på korte setninger!!!
 						// Finn ut hvordan korte setninger håndteres. Dobbelregistrering av ord? eller velge? 
-						if (tekst[forrige_i3] ->typ == 1) {
+						if (tekst[forrige_i3]->typ == 1) { // sjekk om i rett setning. 
+						// Dvs. at indeksen til ordet i 'tekst' i 'data' er større 
+						//  enn setninger[s-1] eller setninger[s-2]?
 							if (debug) {
 								printf("Nest-nest siste ord:  ");
 								skriv(tekst[forrige_i3]->fra, tekst[forrige_i3]->til);
-								printf("\n");								
+								printf("\n");	
+								/* if (   < setninger[s-2]) {  // gir første forekosmt i ->fra... 
+									printf("\n----HAR VI EN VELDIG KORT SETNING HER? -----\n");
+								} */
+
 							}
 							
 							nest_nest_siste_ord->tell(bokstavordtre->oppslag(tekst[forrige_i3]->fra, tekst[forrige_i3]->til));
@@ -387,10 +408,10 @@ void tekstkompressor::hs_stat2() {
 					}
 				
 					ny_setning = false;
+					// Legge inn en form for lokal teller som holder styr på hvor mange ord det er i setningen? 
+					// Om forrige setning bestod av tre ord, bør kanskje bare 'siste' telles og ikke nest /nest-nest siste?. 
 
 				} else {
-
-
 
 					if (forrige->hyppig >= 0) {
 						bokstavordtre->folger_stat[forrige->hyppig]->tell(bokstavordtre->oppslag(o->fra, o->til));
@@ -430,7 +451,6 @@ void tekstkompressor::hs_stat2() {
 						post_komma->tell(bokstavordtre->oppslag(o->fra, o->til)); 
 						komma_passert = false;
 					}
-
 				}
 
 
@@ -465,12 +485,14 @@ void tekstkompressor::hs_stat2() {
 				}
 			}
 			
-			l+=o->lengde();
+			l+=o->lengde();   // Overflow-fare?!
 			o = tekst[++k];
 		}
 	
 		++s;
 		ny_setning = true;
+		ord_i_forrige_setning = ord_i_setning;
+		ord_i_setning = 0;
 		
 	}
 
@@ -511,11 +533,12 @@ void tekstkompressor::hs_stat2() {
 		// Noen eksempelverdier
 		printf("\nFørste ord: Totalt:  %i  Høyeste reksvens:  %i\n", forste_ord->fsum, forste_ord->max_f);
 		printf("\nAndre ord: Totalt:  %i  Høyeste reksvens:  %i\n", andre_ord->fsum, andre_ord->max_f);
+		printf("\nTredje ord: Totalt:  %i  Høyeste reksvens:  %i\n", tredje_ord->fsum, tredje_ord->max_f);
 		printf("\nFør-komma: Totalt:  %i  Høyeste reksvens:  %i\n", pre_komma->fsum, pre_komma->max_f);
 		printf("\nEtter-komma: Totalt:  %i  Høyeste reksvens:  %i\n", post_komma->fsum, post_komma->max_f);
 		printf("\nNest-nest siste ord: Totalt:  %i  Høyeste reksvens:  %i\n", nest_nest_siste_ord->fsum, nest_nest_siste_ord->max_f);
 		printf("\nNest siste ord: Totalt:  %i  Høyeste reksvens:  %i\n", nest_siste_ord->fsum, nest_siste_ord->max_f);
-		printf("\nSiste ord: Totalt:  %i  Høyeste reksvens:  %i\n", siste_ord->fsum, siste_ord->max_f);
+		printf("\nSiste ord: Totalt:  %i  Høyeste reksvens:  %i\n\n", siste_ord->fsum, siste_ord->max_f);
 
 
 /* 		printf("\nAkkumulert (etter komma):   sum: %i \n", post_komma->fsum);
@@ -573,8 +596,8 @@ void tekstkompressor::hs_stat2() {
 		fputc('\n', p_raw);
 
 		// Blir headere i statistikk for ord på visse posisjoner i setning. 
-		fprintf(pos, "global,forste,andre,tredje, nest-nest-siste,nest-siste,siste,pre-komma,post-komma\n");
-		fprintf(pos_raw, "global,forste,andre,tredje, nest-nest-siste,nest-siste,siste,pre-komma,post-komma\n");
+		fprintf(pos, "global,forste,andre,tredje,nest-nest-siste,nest-siste,siste,pre-komma,post-komma\n");
+		fprintf(pos_raw, "global,forste,andre,tredje,nest-nest-siste,nest-siste,siste,pre-komma,post-komma\n");
 		
 		// Loop over index i listestat for å fylle filene med frekvenser
 		for (int y = 0; y < bokstavordtre->lesantall(); ++y) {
