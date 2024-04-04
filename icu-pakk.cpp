@@ -299,7 +299,11 @@ void tekstkompressor::hs_stat2() {
 
 	listestat* siste_ord = new listestat(0, bokstavordtre->ordlager->les_antall());  
 	listestat* nest_siste_ord = new listestat(0, bokstavordtre->ordlager->les_antall());  
-	listestat* nest_nest_siste_ord = new listestat(0, bokstavordtre->ordlager->les_antall());  
+	listestat* nest_nest_siste_ord = new listestat(0, bokstavordtre->ordlager->les_antall());
+	
+	// JH, la til tall som komma stats
+	listestat* pre_tall = new listestat(0, bokstavordtre->ordlager->les_antall());
+	listestat* post_tall = new listestat(0, bokstavordtre->ordlager->les_antall());
 	
 	printf("\nLengde på 'tekst' (maks k-verdi): %i \n", ant_ord);
 
@@ -314,13 +318,13 @@ void tekstkompressor::hs_stat2() {
 	bool forste_passert = false;
 	bool andre_passert = false;
 	bool komma_passert = false;
+	bool tall_passert = false;
 	int forrige_i = 0;    // indeks til forrige ord
 	int forrige_i2 = 0;
 	int forrige_i3 = 0;
 	int ord_i_setning = 0;
 	int ord_i_forrige_setning = 0;
 
-	// Set til true for å få printet ut en del info underveis. 
 	bool debug = true;
 	
 	while ( s <= ant_setn && k < ant_ord){  // Går til enden av teksten 
@@ -341,10 +345,11 @@ void tekstkompressor::hs_stat2() {
 
 
 				if (ny_setning) {
- 					forste_ord->tell(bokstavordtre->oppslag(o->fra, o->til));
+					forste_ord->tell(bokstavordtre->oppslag(o->fra, o->til));
 					forste_passert = true;
 					andre_passert = false;
 					komma_passert = false;
+					tall_passert = false;
 
 					if (debug) {
 						printf("Første ord:  ");
@@ -451,6 +456,19 @@ void tekstkompressor::hs_stat2() {
 						post_komma->tell(bokstavordtre->oppslag(o->fra, o->til)); 
 						komma_passert = false;
 					}
+
+					if (tall_passert) {
+
+						if (debug) {
+							printf("Ord etter tall: ");
+							skriv(o->fra, o->til);
+							printf("\n");
+						}
+
+						post_tall->tell(bokstavordtre->oppslag(o->fra, o->til));
+						tall_passert = false;
+					}
+
 				}
 
 
@@ -478,10 +496,19 @@ void tekstkompressor::hs_stat2() {
 				}
 			} else if (o-> typ == 2) {
 
-				if(debug)  {
-					printf("Her er et tallord:  ");
-					skriv(o->fra, o-> til);
-					printf("\n");
+				tall_passert = true;
+
+				if (forrige->typ == 1) {
+					if(debug)  {
+						printf("Her er et tallord:  ");
+						skriv(o->fra, o-> til);
+						printf("\n");
+						printf("Ord før komma: ");
+						skriv(forrige->fra, forrige->til);
+						printf("\n");
+					}
+
+					pre_tall->tell(bokstavordtre->oppslag(forrige->fra, forrige->til));
 				}
 			}
 			
@@ -528,6 +555,13 @@ void tekstkompressor::hs_stat2() {
 		siste_ord->finnmax();
 		siste_ord->ixsort();
 
+		pre_tall->akkumuler();
+		pre_tall->finnmax();
+		pre_tall->ixsort();
+
+		post_tall->akkumuler();
+		post_tall->finnmax();
+		post_tall->ixsort();
 		
 
 		// Noen eksempelverdier
@@ -538,7 +572,10 @@ void tekstkompressor::hs_stat2() {
 		printf("\nEtter-komma: Totalt:  %i  Høyeste reksvens:  %i\n", post_komma->fsum, post_komma->max_f);
 		printf("\nNest-nest siste ord: Totalt:  %i  Høyeste reksvens:  %i\n", nest_nest_siste_ord->fsum, nest_nest_siste_ord->max_f);
 		printf("\nNest siste ord: Totalt:  %i  Høyeste reksvens:  %i\n", nest_siste_ord->fsum, nest_siste_ord->max_f);
-		printf("\nSiste ord: Totalt:  %i  Høyeste reksvens:  %i\n\n", siste_ord->fsum, siste_ord->max_f);
+		printf("\nSiste ord: Totalt:  %i  Høyeste reksvens:  %i\n", siste_ord->fsum, siste_ord->max_f);
+
+		printf("\nFør-tall: Totalt:  %i  Høyeste reksvens:  %i\n", pre_tall->fsum, pre_tall->max_f);
+		printf("\nEtter-tall: Totalt:  %i  Høyeste reksvens:  %i\n", post_tall->fsum, post_tall->max_f);
 
 
 /* 		printf("\nAkkumulert (etter komma):   sum: %i \n", post_komma->fsum);
@@ -596,8 +633,8 @@ void tekstkompressor::hs_stat2() {
 		fputc('\n', p_raw);
 
 		// Blir headere i statistikk for ord på visse posisjoner i setning. 
-		fprintf(pos, "global,forste,andre,tredje,nest-nest-siste,nest-siste,siste,pre-komma,post-komma\n");
-		fprintf(pos_raw, "global,forste,andre,tredje,nest-nest-siste,nest-siste,siste,pre-komma,post-komma\n");
+		fprintf(pos, "global,forste,andre,tredje, nest-nest-siste,nest-siste,siste,pre-komma,post-komma,pre-tallord,post-tallord\n");
+		fprintf(pos_raw, "global,forste,andre,tredje, nest-nest-siste,nest-siste,siste,pre-komma,post-komma,pre-tallord,post-tallord\n");
 		
 		// Loop over index i listestat for å fylle filene med frekvenser
 		for (int y = 0; y < bokstavordtre->lesantall(); ++y) {
@@ -613,14 +650,31 @@ void tekstkompressor::hs_stat2() {
 			fputc('\n', p);
 			fputc('\n', p_raw);
 			
-			fprintf(pos, ", %i, %i, %i, %i, %i, %i, %i, %i\n", 
-			forste_ord->tab[forste_ord->ix[y]], andre_ord->tab[andre_ord->ix[y]], tredje_ord->tab[tredje_ord->ix[y]], 
-			nest_nest_siste_ord->tab[nest_nest_siste_ord->ix[y]],	nest_siste_ord->tab[nest_siste_ord->ix[y]], 
-			siste_ord->tab[siste_ord->ix[y]], pre_komma->tab[pre_komma->ix[y]], post_komma->tab[post_komma->ix[y]]);
+			fprintf(pos, ", %i, %i, %i, %i, %i, %i, %i, %i, %i, %i\n", 
+				forste_ord->tab[forste_ord->ix[y]], 
+				andre_ord->tab[andre_ord->ix[y]],
+				tredje_ord->tab[tredje_ord->ix[y]], 
+				nest_nest_siste_ord->tab[nest_nest_siste_ord->ix[y]],
+				nest_siste_ord->tab[nest_siste_ord->ix[y]], 
+				siste_ord->tab[siste_ord->ix[y]],
+				pre_komma->tab[pre_komma->ix[y]],
+				post_komma->tab[post_komma->ix[y]],
+				pre_tall->tab[pre_komma->ix[y]],
+				post_tall->tab[post_komma->ix[y]]
+			);
 			
-			fprintf(pos_raw, ", %i, %i, %i, %i, %i, %i, %i, %i\n", 
-			forste_ord->tab[y], andre_ord->tab[y], tredje_ord->tab[y], nest_nest_siste_ord->tab[y], 
-			nest_siste_ord->tab[y], siste_ord->tab[y], pre_komma->tab[y], post_komma->tab[y]);
+			fprintf(pos_raw, ", %i, %i, %i, %i, %i, %i, %i, %i, %i, %i\n", 
+				forste_ord->tab[y],
+				andre_ord->tab[y],
+				tredje_ord->tab[y],
+				nest_nest_siste_ord->tab[y], 
+				nest_siste_ord->tab[y],
+				siste_ord->tab[y],
+				pre_komma->tab[y],
+				post_komma->tab[y],
+				pre_tall->tab[y],
+				post_tall->tab[y]
+			);
 		}
 
 		fclose(p); 
