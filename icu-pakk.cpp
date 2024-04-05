@@ -325,7 +325,9 @@ void tekstkompressor::hs_stat2() {
 	int ord_i_setning = 0;
 	int ord_i_forrige_setning = 0;
 
-	bool debug = false;
+	bool debug = true;
+	bool bruk_cut_off = false;  // Dersom 'false' vil alle ord telles selv om de ikke forekommer så mange ganger.
+	// Om satt til 'true' vil kun ord som forekommer ofte nok til at de til sammen utgjør x% (80%) av 'ordvolumet' bli talt opp. 
 
 	// Merk: F.eks "Mrs." i start av setning vil la setningen bestå kun av dette ordet i delingen fra icu.
 		// Jobbe utifra prioritet? Eller legge ord i flere statistikker - kanskje like greit?
@@ -373,7 +375,13 @@ void tekstkompressor::hs_stat2() {
 
 
 				if (ny_setning) {
-					forste_ord->tell(bokstavordtre->oppslag(o->fra, o->til));
+					if (!bruk_cut_off || o->antall >= cut_off_verdt_telling ) {
+						forste_ord->tell(bokstavordtre->oppslag(o->fra, o->til));
+						if (debug && bruk_cut_off) printf("T(1.)     - %7i - ",  o->antall );
+					} else {
+						if (debug && bruk_cut_off) printf("- %7i - ",  o->antall );
+					}
+
 					forste_passert = true;
 					andre_passert = false;
 					komma_passert = false;
@@ -388,12 +396,18 @@ void tekstkompressor::hs_stat2() {
 
 					if (s > 1) {  // Bytte ut med en do -- while ? 
 
+						if (!bruk_cut_off || forrige->antall >= cut_off_verdt_telling ) {
+							siste_ord->tell(bokstavordtre->oppslag(forrige->fra, forrige->til)); 	
+							if (debug && bruk_cut_off) printf("T(s)      - %7i - ",  forrige->antall );
+						} else {
+							if (debug && bruk_cut_off) printf("- %7i - ",  forrige->antall );
+						}
+
 						if (debug) {
-							printf("\nSiste ord:   ");
+							printf("Siste ord:   ");
 							skriv(forrige->fra, forrige->til); 
 							printf("\n");
 						}
-						siste_ord->tell(bokstavordtre->oppslag(forrige->fra, forrige->til)); 	
 
 						// Strengt tatt ikke nødvendig å sjekke om ordet på denne indeksen er et bokstavord
 						// - indeksen ble oppdatert i bokstavord-loop. 
@@ -404,26 +418,35 @@ void tekstkompressor::hs_stat2() {
 						
 						if (tekst[forrige_i2]->typ ==1 && ord_i_forrige_setning > 2) { 
 							// 3 ord: Første - andre/nest-sist - tredje/sist
+							if (!bruk_cut_off || tekst[forrige_i2]->antall >= cut_off_verdt_telling ) {
+								nest_siste_ord->tell(bokstavordtre->oppslag(tekst[forrige_i2]->fra, tekst[forrige_i2]->til));
+								if (debug && bruk_cut_off) printf("T(nS)     - %7i - ",  tekst[forrige_i2]->antall );
+							} else {
+								if (debug && bruk_cut_off) printf("- %7i - ",  tekst[forrige_i2]->antall );
+							}
+
 							if (debug) {
 								printf("Nest siste ord:  ");
 								skriv(tekst[forrige_i2]->fra, tekst[forrige_i2]->til);
 								printf("\n");								
 							}
-							
-							nest_siste_ord->tell(bokstavordtre->oppslag(tekst[forrige_i2]->fra, tekst[forrige_i2]->til));
 
 						} 
 					
 						if (tekst[forrige_i3]->typ == 1 && ord_i_forrige_setning > 3) { // sjekk om i rett setning. 
 							// 4 ord: Første - andre/nest-nest-sist - tredje/nest-sist sist
+							if (!bruk_cut_off || tekst[forrige_i3]->antall >= cut_off_verdt_telling ) {
+								nest_nest_siste_ord->tell(bokstavordtre->oppslag(tekst[forrige_i3]->fra, tekst[forrige_i3]->til));
+								if (debug && bruk_cut_off) printf("T(nnS)    - %7i - ",  tekst[forrige_i3]->antall );
+							} else {
+								if (debug && bruk_cut_off) printf("- %7i - ",  tekst[forrige_i3]->antall );
+							}
+
 							if (debug) {
 								printf("Nest-nest siste ord:  ");
 								skriv(tekst[forrige_i3]->fra, tekst[forrige_i3]->til);
 								printf("\n\n");	
 							}
-							
-							nest_nest_siste_ord->tell(bokstavordtre->oppslag(tekst[forrige_i3]->fra, tekst[forrige_i3]->til));
-
 						}
 					}
 				
@@ -432,45 +455,70 @@ void tekstkompressor::hs_stat2() {
 				} else {
 
 					if (forrige->hyppig >= 0) {
-						bokstavordtre->folger_stat[forrige->hyppig]->tell(bokstavordtre->oppslag(o->fra, o->til));
-						
+						if (!bruk_cut_off || o->antall >= cut_off_verdt_telling ) {
+							bokstavordtre->folger_stat[forrige->hyppig]->tell(bokstavordtre->oppslag(o->fra, o->til));
+						}						
 					}
 					
 					if (forste_passert) {
+						if (!bruk_cut_off || o->antall >= cut_off_verdt_telling ) {
+							andre_ord->tell(bokstavordtre->oppslag(o->fra, o->til));
+							if (debug && bruk_cut_off) printf("T(2.)     - %7i - ",  o->antall );
+						} else {
+							if (debug && bruk_cut_off) printf("- %7i - ",  o->antall );
+						}
+
 						if (debug) {
 							printf("Andre ord:  ");
 							skriv(o->fra, o->til);
 							printf("\n");
 						}	
-						
-						andre_ord->tell(bokstavordtre->oppslag(o->fra, o->til));
+
 						forste_passert = false;
 						andre_passert = true;
+
 					} else if (andre_passert) {
-							if (debug) {
+						if (!bruk_cut_off || o->antall >= cut_off_verdt_telling ) {
+							tredje_ord->tell(bokstavordtre->oppslag(o->fra, o->til));  // Hva om setning bare har ett eller to ord?
+							if (debug && bruk_cut_off) printf("T(3.)     - %7i - ",  o->antall );
+						} else {
+							if (debug && bruk_cut_off) printf("- %7i - ",  o->antall );
+						}
+
+						if (debug) {
 							printf("Tredje ord:  ");
 							skriv(o->fra, o->til);
 							printf("\n");
 						}	
-
-						tredje_ord->tell(bokstavordtre->oppslag(o->fra, o->til));  // Hva om setning bare har ett eller to ord?
 						andre_passert = false;
 					}
 
 
 					if (komma_passert) {
 
+						if (!bruk_cut_off || o->antall >= cut_off_verdt_telling ) {
+							post_komma->tell(bokstavordtre->oppslag(o->fra, o->til)); 
+							if (debug && bruk_cut_off) printf("T(postK)  - %7i - ",  o->antall );
+						} else {
+							if (debug && bruk_cut_off) printf("- %7i - ",  o->antall );
+						}
+
 						if (debug) {
 							printf("Ord etter komma: ");
 							skriv(o->fra, o->til);
 							printf("\n");
 						}
-					
-						post_komma->tell(bokstavordtre->oppslag(o->fra, o->til)); 
+			
 						komma_passert = false;
 					}
 
 					if (tall_passert) {
+						if (!bruk_cut_off || o->antall >= cut_off_verdt_telling ) {
+							post_tall->tell(bokstavordtre->oppslag(o->fra, o->til));
+							if (debug && bruk_cut_off) printf("T(postT)  - %7i - ",  o->antall );
+						} else {
+							if (debug && bruk_cut_off) printf("- %7i - ",  o->antall );
+						}
 
 						if (debug) {
 							printf("Ord etter tall: ");
@@ -478,7 +526,6 @@ void tekstkompressor::hs_stat2() {
 							printf("\n");
 						}
 
-						post_tall->tell(bokstavordtre->oppslag(o->fra, o->til));
 						tall_passert = false;
 					}
 
@@ -497,19 +544,29 @@ void tekstkompressor::hs_stat2() {
 				komma_passert = true;  
 
 				if(forrige->typ == 1) {
+					if (!bruk_cut_off || forrige->antall >= cut_off_verdt_telling ) {
+						pre_komma->tell(bokstavordtre->oppslag(forrige->fra, forrige->til)); 
+						if (debug && bruk_cut_off) printf("T(preK)   - %7i - ",  forrige->antall );
+					} else {
+						if (debug && bruk_cut_off) printf("- %7i - ",  forrige->antall );
+					}
 
 					if (debug) {
 						printf("Ord før komma: ");
 						skriv(forrige->fra, forrige->til);
 						printf("\n");
 					}
-					
-					pre_komma->tell(bokstavordtre->oppslag(forrige->fra, forrige->til)); 
-				
+									
 				}
 			} else if (o-> typ == 2) {
 
 				tall_passert = true;
+					if (!bruk_cut_off || forrige->antall >= cut_off_verdt_telling ) {
+					pre_tall->tell(bokstavordtre->oppslag(forrige->fra, forrige->til));
+						if (debug && bruk_cut_off) printf("T(preT)   - %7i - ",  forrige->antall );
+					} else {
+						if (debug && bruk_cut_off) printf("- %7i - ",  forrige->antall );
+					}
 
 				if (forrige->typ == 1) {
 					if(debug)  {
@@ -521,7 +578,6 @@ void tekstkompressor::hs_stat2() {
 						printf("\n");
 					}
 
-					pre_tall->tell(bokstavordtre->oppslag(forrige->fra, forrige->til));
 				}
 			}
 			
