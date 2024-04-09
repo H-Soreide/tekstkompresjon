@@ -780,7 +780,7 @@ void tekstkompressor::hs_stat2() {
 // Del 4 -Kalle metode for beregning av entropi basert på statistikkene.
 	
 	
-	bool entropi = true;
+	bool entropi = false;
 
   	printf("Antall hyppigste ord med folger-stat:  %i\n", ant_hyppige_listestat); //std::end(bokstavordtre->folger_stat) - std::begin(bokstavordtre->folger_stat));
 
@@ -825,17 +825,20 @@ listestat *nest_nest_siste, listestat *nest_siste, listestat *siste, listestat *
 
 	bool db = false;       // <=== DEBUG MODE
 	bool db2 = false;
-	bool bruk_kontekster = true;
+	bool db3 = false;
 	int i =0;
 
 	double sanns_kontekst[ant_folger_listestat + 8];
+	for (int i = 0; i < ant_folger_listestat+8; ++i) sanns_kontekst[i] = 0;
+	for (int i = 0; i < ant_folger_listestat+8; ++i) printf("%f %i ", sanns_kontekst[i], i);
+
 
 	while (i < ant_ord) {    // <= ant_ord
 		//printf("Setninger[%i] = %i  Setninger[%i] = %i  (l=%i)\n", setn_nr, setninger[setn_nr], setn_nr+1, setninger[setn_nr +1], l);
 
 		if(db) {
 
-			if (o->typ == 0) printf("\nsetning: %i (%i)  l: %i Ord-type: %i  frekvens: %i / %i (nonord)     ", setn_nr, setningslengder[setn_nr], l, o->typ, o->antall, nonordtre->lestotal());
+			//if (o->typ == 0) printf("\nsetning: %i (%i)  l: %i Ord-type: %i  frekvens: %i / %i (nonord)     ", setn_nr, setningslengder[setn_nr], l, o->typ, o->antall, nonordtre->lestotal());
 			if (o->typ == 1) printf("\nsetning: %i (%i)  l: %i Ord-type: %i  frekvens: %i / %i (bokstavord) ", setn_nr, setningslengder[setn_nr], l, o->typ, o->antall, bokstavordtre->lestotal());
 			if (o->typ == 2) printf("\nsetning: %i (%i)  l: %i Ord-type: %i  frekvens: %i / %i (tallord)    ", setn_nr, setningslengder[setn_nr], l, o->typ, o->antall, tallordtre->lestotal());
 		
@@ -879,7 +882,38 @@ listestat *nest_nest_siste, listestat *nest_siste, listestat *siste, listestat *
 				++midlertidig_teller;
 				
 				i_kontekst = true;
-			}  // else if nr 2 el 3 -> 2. og 3. ord listestat
+			} else if (ord_nr_i_setning == 2) {
+
+					if (db) {
+					printf("+++ Andreord: akk = %i   ", andre_ord->akk[bokstavordtre->oppslag(o->fra, o->til)]);
+					skriv(o->fra, o->til);
+					printf("\n");
+				}
+				sanns_kontekst[1] = ((double) andre_ord->tab[bokstavordtre->oppslag(o->fra, o->til)] / andre_ord->fsum);
+				if(db2) printf("sanns(2.) kontekst:  %i  / %i  sanns:  %f\n", andre_ord->tab[bokstavordtre->oppslag(o->fra, o->til)], andre_ord->fsum, sanns_kontekst[1]);    // sanns_kontekst[0]);
+
+				entropi_bidrag -= sanns_kontekst[1];
+				++midlertidig_teller;
+				
+				i_kontekst = true;
+
+
+			} else if (ord_nr_i_setning == 3) {
+				
+				if (db) {
+					printf("+++ Tredjeord: akk = %i   ", tredje_ord->akk[bokstavordtre->oppslag(o->fra, o->til)]);
+					skriv(o->fra, o->til);
+					printf("\n");
+				}
+				sanns_kontekst[2] = ((double) tredje_ord->tab[bokstavordtre->oppslag(o->fra, o->til)] / tredje_ord->fsum);
+				if(db2) printf("sanns(3.) kontekst:  %i  / %i  sanns:  %f\n", tredje_ord->tab[bokstavordtre->oppslag(o->fra, o->til)], tredje_ord->fsum, sanns_kontekst[2]);    // sanns_kontekst[0]);
+
+				entropi_bidrag -= sanns_kontekst[2];
+				++midlertidig_teller;
+				
+				i_kontekst = true;
+
+			}
 
 
 			if (ord_nr_i_setning == setningslengder[setn_nr]) {  // siste ord
@@ -942,6 +976,17 @@ listestat *nest_nest_siste, listestat *nest_siste, listestat *siste, listestat *
 
 			i_kontekst = false;
 
+			if(db3) {
+
+				printf("O: %i ", i);
+				for (auto s : sanns_kontekst) printf("  %f  ", s);
+				printf("\n");
+
+			}
+
+	
+
+
 		}  // bokstavord
 
 
@@ -964,6 +1009,8 @@ listestat *nest_nest_siste, listestat *nest_siste, listestat *siste, listestat *
 		printf("\n");   
 		}
 
+		
+		for (int i = 0; i < ant_folger_listestat+8; ++i) sanns_kontekst[i] = 0;
 
 
 		forrige = o;
