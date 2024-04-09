@@ -263,9 +263,10 @@ class tekstkompressor : public aritkode {
 	ord **tekst; //Hele teksten, ordene i rekkefølge
 	int ant_ord;
 
-	// HS:
-	int *setninger;   // 0, 1.setn->til, 2.setn->til, ... (lengde lik ant_setn +1)
+	// HS:  --------------
+	int *setninger;   // 0, 1.setn->til, 2.setn->til, ... (lengde lik ant_setn +1) (til, ikke tom.)
 	int ant_setn;  //HS Kan kanskje fjernes
+	// HS ------------
 
 
 	void skrivtxtstat1(listestat *txt, listestat txt1[256]);
@@ -303,6 +304,8 @@ class tekstkompressor : public aritkode {
 // HS------------------------------------------------------------------
 	void reg_setn(int end);   // Legger til setnings->til nummer i 'setninger'
 	void hs_stat2();
+	void beregn_entropi(listestat *forste_ord_ls, listestat *andre_ord_ls, listestat *tredje_ord_ls, listestat *nest_nest_siste_ls, 
+	listestat *nest_siste_ls, listestat *siste_ls, listestat *pre_komma_ls, listestat *post_komma_ls,  listestat **folger_ls, int ant_folger_ls, int *setningslengder);
 
 	// HS -----------------------------------------------------
 };
