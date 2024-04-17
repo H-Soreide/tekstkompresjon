@@ -619,7 +619,7 @@ void tekstkompressor::hs_stat2() {
 
 
 	printf("\n\nFerdig med å fylle listestat, nå skrives det til fil dersom 'bool skriv_til_fil == true'. \n");
-	bool skriv_til_fil = false;
+	bool skriv_til_fil = true;
 
 	forste_ord->akkumuler();
 	andre_ord->akkumuler();
@@ -682,12 +682,13 @@ void tekstkompressor::hs_stat2() {
 
 	// ---   Skrive til filer:    ---
 	// p er sortert statistikk over ord som følger de hyppigste ordene.  raw er ikke sortert slik at frekvensene på hver rad tilhører ordet med samme ordnummer! 
-		FILE* p = fopen("statistikk.txt","w"); 
-		FILE* p_raw = fopen("raw_stat.txt", "w");
+
+		FILE* p = fopen("stats/statistikk.txt","w"); 
+		FILE* p_raw = fopen("stats/raw_stat.txt", "w");
 
 		// pos og pos_raw er som p og raw men for statistikker relatert til posisjonen til ord i setningene. (ikke følger-ord). 
-		FILE* pos = fopen("pos_statistikk.txt","w"); 
-		FILE* pos_raw = fopen("pos_raw_stat.txt", "w");
+		FILE* pos = fopen("stats/pos_statistikk.txt","w"); 
+		FILE* pos_raw = fopen("stats/pos_raw_stat.txt", "w");
 
 		// Legge til antall hyppige og cut-off frekvens øverst i fil
 		fprintf(p, "%i/%i/%i\n", ant_hyppige_listestat, sum_hyppigste, bokstavordtre->lestotal());   // integer div?
