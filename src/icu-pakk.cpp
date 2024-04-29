@@ -9,6 +9,7 @@
 #include <cmath>  // HS
 
 #include "tekstkompressor.hpp"
+#include <string.h>
 using namespace icu;
 
 /*
@@ -217,7 +218,9 @@ void tekstkompressor::hs_stat2() {
 
 	// Med metode=2 og cutoff=50 oppretter vi en listestat for de 50 hyppigste ordene og bruker de til å telle frekvens på følger-ord. 
 	int metode = 2;
-	int cutoff =5;  // Hvis metode 1: ant. vi deler max_f på, hvis metode 2: antall hyppige ord vi oppretter listestat for. 
+	// int cutoff = 5;  // Hvis metode 1: ant. vi deler max_f på, hvis metode 2: antall hyppige ord vi oppretter listestat for.
+	
+	// cutoff flyttet til tekstkompressor, blir satt i main ved parameter parsing
 
 	int ant_hyppige_listestat = 0; // Denne er viktig!
 	// Starter med det aller hyppigste ordet:
@@ -238,7 +241,7 @@ void tekstkompressor::hs_stat2() {
 			printf("\n");
 			b = bokstavordtre->ordlager->hent(bokstavordtre->ordfordeling->ix[++ant_hyppige_listestat]);
 	}
- 
+
 	} else if (metode == 2) {
 		printf("\nCut-off antall for hyppigste ord: %i\n", cutoff);
 
@@ -683,12 +686,41 @@ void tekstkompressor::hs_stat2() {
 	// ---   Skrive til filer:    ---
 	// p er sortert statistikk over ord som følger de hyppigste ordene.  raw er ikke sortert slik at frekvensene på hver rad tilhører ordet med samme ordnummer! 
 
-		FILE* p = fopen("stats/statistikk.txt","w"); 
-		FILE* p_raw = fopen("stats/raw_stat.txt", "w");
+		// Lager navn til stat-filene basert på innfilnavn og cutoff
+		char folder[] = "stats/";
+		char *filname = (char *) malloc(strlen(innfilnavn));
+		strcpy(filname, innfilnavn);
+		char *sp = filname;
+		while (*sp != '\0') {
+			if (*sp == '.') {
+				*sp = '\0';
+				break;
+			}
+			sp++;
+		}
+
+		char *folger_sort_name = (char *)malloc(256);
+		char *folger_raw_name = (char *)malloc(256);
+		char *pos_sort_name = (char *)malloc(256);
+		char *pos_raw_name = (char *)malloc(256);
+
+		sprintf(folger_sort_name, "%sfolger_sort_%s_%d.txt", folder, filname, cutoff);
+		sprintf(folger_raw_name, "%sfolger_raw_%s_%d.txt", folder, filname, cutoff);
+		sprintf(pos_sort_name, "%spos_sort_%s_%d.txt", folder, filname, cutoff);
+		sprintf(pos_raw_name, "%spos_raw_%s_%d.txt", folder, filname, cutoff);
+
+		FILE* p = fopen(folger_sort_name,"w"); 
+		FILE* p_raw = fopen(folger_raw_name, "w");
 
 		// pos og pos_raw er som p og raw men for statistikker relatert til posisjonen til ord i setningene. (ikke følger-ord). 
-		FILE* pos = fopen("stats/pos_statistikk.txt","w"); 
-		FILE* pos_raw = fopen("stats/pos_raw_stat.txt", "w");
+		FILE* pos = fopen(pos_sort_name,"w"); 
+		FILE* pos_raw = fopen(pos_raw_name, "w");
+
+		free(filname);
+		free(folger_sort_name);
+		free(folger_raw_name);
+		free(pos_sort_name);
+		free(pos_raw_name);
 
 		// Legge til antall hyppige og cut-off frekvens øverst i fil
 		fprintf(p, "%i/%i/%i\n", ant_hyppige_listestat, sum_hyppigste, bokstavordtre->lestotal());   // integer div?
@@ -1455,6 +1487,8 @@ int main(int argc, char *argv[]) {
 	int verbose = 0;
 	char const *innfilnavn;
 	char const *utfilnavn;
+	int cutoff = 5; // default value 5 for cutoff
+	printf("argc: %d\n", argc);
 	switch (argc) {
 		case 3:
 			if (*argv[1] == '-' || *argv[2] == '-') feil(bruk);
@@ -1472,12 +1506,27 @@ int main(int argc, char *argv[]) {
 				verbose = atoi(argv[3]+1);
 			} else feil(bruk);
 			break;
+		case 5:
+			if (*argv[1] == '-') {
+				innfilnavn = argv[2];
+				utfilnavn = argv[3];
+				verbose = atoi(argv[1]+1);
+				cutoff = atoi(argv[4]);
+				printf("Gitt cutoff %d\n", cutoff);
+			} else if (*argv[3] == '-') {
+				innfilnavn = argv[1];
+				utfilnavn = argv[2];
+				verbose = atoi(argv[3]+1);
+				cutoff = atoi(argv[4]);
+				printf("Gitt cutoff %d\n", cutoff);
+			} else feil(bruk);
+			break;
 		default:
 			feil(bruk);
 	}
 
 	try {
-		tekstkompressor tk(innfilnavn, utfilnavn, true, verbose);
+		tekstkompressor tk(innfilnavn, utfilnavn, true, verbose, cutoff);
 		tk.pakk();
 	} catch (char const *meld) { printf("Feil: %s\n", meld); }
 }
