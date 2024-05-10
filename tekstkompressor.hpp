@@ -302,10 +302,12 @@ class tekstkompressor : public aritkode {
 	void pakkut();
 
 // HS------------------------------------------------------------------
+// TODO: Fjerne postfix '_ls' ? 
 	void reg_setn(int end);   // Legger til setnings->til nummer i 'setninger'
 	void hs_stat2();
 	void beregn_entropi(listestat *forste_ord_ls, listestat *andre_ord_ls, listestat *tredje_ord_ls, listestat *nest_nest_siste_ls, 
-	listestat *nest_siste_ls, listestat *siste_ls, listestat *pre_komma_ls, listestat *post_komma_ls,  listestat **folger_ls, int ant_folger_ls, int *setningslengder);
+	listestat *nest_siste_ls, listestat *siste_ls, listestat *pre_komma_ls, listestat *post_komma_ls, listestat *pre_tallord_ls, listestat *post_tallord_ls,
+	listestat **folger_ls, int ant_folger_ls, int *setningslengder);
 
 	// HS -----------------------------------------------------
 };
