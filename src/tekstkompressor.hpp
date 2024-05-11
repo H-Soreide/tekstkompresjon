@@ -268,6 +268,7 @@ class tekstkompressor : public aritkode {
 	int ant_setn;  //HS Kan kanskje fjernes
 	// HS ------------
 	int cutoff;
+	int hyppig;
 
 
 	void skrivtxtstat1(listestat *txt, listestat txt1[256]);
@@ -297,7 +298,7 @@ class tekstkompressor : public aritkode {
 	void antallstats(int *liste, int ant, ordtre *tre);
 
 	public:
-	tekstkompressor(char const *innf, char const *utf, bool pakkinn, int verb, int cutoff);
+	tekstkompressor(char const *innf, char const *utf, bool pakkinn, int verb, int cutoff, int hyppig);
 	void reg_tekst(ord *o);
 	void pakk();
 	void pakkut();

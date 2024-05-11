@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # Sjekk om riktig mengde parametre er gitt
-# eksempel: './run.sh ./icu-pakk hound.txt out.z stats/ ../statistikkanalyse/statistikker/new 20 40 60 80 100 120 140'
+# eksempel: './run.sh ./icu-pakk hound.txt out.z stats/ ../statistikkanalyse/statistikker/new 20 30 20 50 20 80'
 if [ $# -lt 6 ]; then
-    echo "Usage: $0 [program_path] [innputfile] [outputfile] [stats_folder] [newstats_folder] [number1] [number2] ..."
+    echo "Usage: $0 [program_path] [innputfile] [outputfile] [stats_folder] [newstats_folder] [cutoff1] [hyppig1] [cutoff2] [hyppig2] ..."
     exit 1
 fi
 
@@ -21,11 +21,32 @@ fi
 
 shift 5
 
-# kjør programmet med alle gitt cutoffs
-for number in "$@"; do
-    echo "Running program '$program_path' with parameters '$innputfile' '$outputfile' and number: $number"
-    "$program_path" -9 "$innputfile" "$outputfile" "$number"
+outsizelist=()
+input_list=("$@")
+
+input_list=("$@")
+
+# Sjekk om cutoff og hyppighet kommer i par
+if [ $(( ${#input_list[@]} % 2 )) -ne 0 ]; then
+    echo "Error: The input list must have an even number of elements."
+    exit 1
+fi
+
+# kjør programmet med alle gitt cutoffs og hyppig
+for (( i=0; i<${#input_list[@]}; i+=2 )); do
+    cutoff=${input_list[i]}
+    hyppig=${input_list[i+1]}
+
+    echo "Running program '$program_path' with parameters '$innputfile' '$outputfile' and cutoff: $cutoff", hyppig: $hyppig
+
+    "$program_path" -9 "$innputfile" "$outputfile" "$cutoff" "$hyppig"
+
+    outsizelist+=($(stat --printf="%s" "$outputfile"))
+
 done
+
+echo "Output file size (in bytes): "
+echo "${outsizelist[@]}"
 
 # flytt alle statistikk filene til newstats_folder 
 cp -a "$stats_folder/." "$newstats_folder"

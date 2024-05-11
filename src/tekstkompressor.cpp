@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include "tekstkompressor.hpp"
 
-tekstkompressor::tekstkompressor(char const *innf, char const *utf, bool pakkinn, int verb, int ctoff) : aritkode(pakkinn ? ut=fopen(utf,"w") : inn=fopen(innf, "r")) 
+tekstkompressor::tekstkompressor(char const *innf, char const *utf, bool pakkinn, int verb, int ctoff, int hypp) : aritkode(pakkinn ? ut=fopen(utf,"w") : inn=fopen(innf, "r")) 
 {
 	innfilnavn = innf;
 	utfilnavn = utf;
@@ -22,6 +22,7 @@ tekstkompressor::tekstkompressor(char const *innf, char const *utf, bool pakkinn
 	ant_setn = 0;
 
 	cutoff = ctoff;
+	hyppig = hypp;
 }
 
 listestat::listestat(unsigned int pmin, unsigned int pmax) {
