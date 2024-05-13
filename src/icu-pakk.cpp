@@ -218,13 +218,9 @@ void tekstkompressor::hs_stat2() {
 
 	// Med metode=2 og cutoff=50 oppretter vi en listestat for de 50 hyppigste ordene og bruker de til å telle frekvens på følger-ord. 
 	int metode = 2;
-<<<<<<< HEAD:icu-pakk.cpp
-	int cutoff = 100;  // Hvis metode 1: ant. vi deler max_f på, hvis metode 2: antall hyppige ord vi oppretter listestat for. 
-=======
 	// int cutoff = 5;  // Hvis metode 1: ant. vi deler max_f på, hvis metode 2: antall hyppige ord vi oppretter listestat for.
 	
 	// cutoff flyttet til tekstkompressor, blir satt i main ved parameter parsing
->>>>>>> filstruktur:src/icu-pakk.cpp
 
 	int ant_hyppige_listestat = 0; // Denne er viktig!
 	// Starter med det aller hyppigste ordet:
@@ -284,11 +280,7 @@ void tekstkompressor::hs_stat2() {
 	// Cut-off for ord verdt å telle opp i listestatene.   (Kan nok slås sammen på et vis med logikken over, men adskilt for nå.)
 
 	int akk_hyppige = 0;
-<<<<<<< HEAD:icu-pakk.cpp
-	float cut_off_prosent = 0.1f;
-=======
 	float cut_off_prosent = hyppig / 100.0; // Ta hyppighet ved innnput
->>>>>>> filstruktur:src/icu-pakk.cpp
 	ord *ord_verd_telling = bokstavordtre->ordlager->hent(bokstavordtre->ordfordeling->ix[0]);   // Starter med å telle hyppigste ord
 	int ant = 0;
 	int cut_off_total = (int)(bokstavordtre->lestotal() * cut_off_prosent + 0.5f);
@@ -351,13 +343,7 @@ void tekstkompressor::hs_stat2() {
 	int* setningslengder = new int[ant_setn]; 
 
 	bool debug = false;
-<<<<<<< HEAD:icu-pakk.cpp
-	bool bruk_cut_off = false;  // Dersom 'false' vil alle ord telles selv om de ikke forekommer så mange ganger.
-	printf("Bruk av cut-off på ord verdt telling er:  %s \n", bruk_cut_off ? "true" : "false");
-
-=======
 	bool bruk_cut_off = true;  // Dersom 'false' vil alle ord telles selv om de ikke forekommer så mange ganger.
->>>>>>> filstruktur:src/icu-pakk.cpp
 	// Om satt til 'true' vil kun ord som forekommer ofte nok til at de til sammen utgjør x% (80%) av 'ordvolumet' bli talt opp. 
 	// 'false' her er kanskje en forutsetning for å kunne bruke geometrisk gjennomsnitt ved koding av sannsynlighetene ?
 
