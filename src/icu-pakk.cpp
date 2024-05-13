@@ -9,6 +9,7 @@
 #include <cmath>  // HS
 
 #include "tekstkompressor.hpp"
+#include <string.h>
 using namespace icu;
 
 /*
@@ -217,7 +218,13 @@ void tekstkompressor::hs_stat2() {
 
 	// Med metode=2 og cutoff=50 oppretter vi en listestat for de 50 hyppigste ordene og bruker de til å telle frekvens på følger-ord. 
 	int metode = 2;
+<<<<<<< HEAD:icu-pakk.cpp
 	int cutoff = 100;  // Hvis metode 1: ant. vi deler max_f på, hvis metode 2: antall hyppige ord vi oppretter listestat for. 
+=======
+	// int cutoff = 5;  // Hvis metode 1: ant. vi deler max_f på, hvis metode 2: antall hyppige ord vi oppretter listestat for.
+	
+	// cutoff flyttet til tekstkompressor, blir satt i main ved parameter parsing
+>>>>>>> filstruktur:src/icu-pakk.cpp
 
 	int ant_hyppige_listestat = 0; // Denne er viktig!
 	// Starter med det aller hyppigste ordet:
@@ -240,7 +247,7 @@ void tekstkompressor::hs_stat2() {
 			printf("\n");
 			b = bokstavordtre->ordlager->hent(bokstavordtre->ordfordeling->ix[++ant_hyppige_listestat]);
 	}
- 
+
 	} else if (metode == 2) {
 		printf("\nCut-off antall for hyppigste ord: %i\n", cutoff);
 
@@ -277,7 +284,11 @@ void tekstkompressor::hs_stat2() {
 	// Cut-off for ord verdt å telle opp i listestatene.   (Kan nok slås sammen på et vis med logikken over, men adskilt for nå.)
 
 	int akk_hyppige = 0;
+<<<<<<< HEAD:icu-pakk.cpp
 	float cut_off_prosent = 0.1f;
+=======
+	float cut_off_prosent = hyppig / 100.0; // Ta hyppighet ved innnput
+>>>>>>> filstruktur:src/icu-pakk.cpp
 	ord *ord_verd_telling = bokstavordtre->ordlager->hent(bokstavordtre->ordfordeling->ix[0]);   // Starter med å telle hyppigste ord
 	int ant = 0;
 	int cut_off_total = (int)(bokstavordtre->lestotal() * cut_off_prosent + 0.5f);
@@ -340,9 +351,13 @@ void tekstkompressor::hs_stat2() {
 	int* setningslengder = new int[ant_setn]; 
 
 	bool debug = false;
+<<<<<<< HEAD:icu-pakk.cpp
 	bool bruk_cut_off = false;  // Dersom 'false' vil alle ord telles selv om de ikke forekommer så mange ganger.
 	printf("Bruk av cut-off på ord verdt telling er:  %s \n", bruk_cut_off ? "true" : "false");
 
+=======
+	bool bruk_cut_off = true;  // Dersom 'false' vil alle ord telles selv om de ikke forekommer så mange ganger.
+>>>>>>> filstruktur:src/icu-pakk.cpp
 	// Om satt til 'true' vil kun ord som forekommer ofte nok til at de til sammen utgjør x% (80%) av 'ordvolumet' bli talt opp. 
 	// 'false' her er kanskje en forutsetning for å kunne bruke geometrisk gjennomsnitt ved koding av sannsynlighetene ?
 
@@ -624,7 +639,7 @@ void tekstkompressor::hs_stat2() {
 
 
 	printf("\n\nFerdig med å fylle listestat, nå skrives det til fil dersom 'bool skriv_til_fil == true'. \n");
-	bool skriv_til_fil = false;
+	bool skriv_til_fil = true;
 
 	forste_ord->akkumuler();
 	andre_ord->akkumuler();
@@ -662,7 +677,24 @@ void tekstkompressor::hs_stat2() {
 	printf("\nFør-tall:             Totalt:  %7i  Høyeste reksvens:  %6i  Nest høyeste: %6i\n", pre_tall->fsum, pre_tall->max_f, pre_tall->max_f2);
 	printf("\nEtter-tall:           Totalt:  %7i  Høyeste reksvens:  %6i  Nest høyeste: %6i\n", post_tall->fsum, post_tall->max_f, post_tall->max_f2);
 
-
+	/*
+	forste_ord->til_fil(this, bokstavordtre->ordlager->les_antall(), forste_ord->fsum);
+	andre_ord->til_fil(this, bokstavordtre->ordlager->les_antall(), andre_ord->fsum);
+	tredje_ord->til_fil(this, bokstavordtre->ordlager->les_antall(), tredje_ord->fsum);
+	pre_komma->til_fil(this, bokstavordtre->ordlager->les_antall(), pre_komma->fsum);
+	post_komma->til_fil(this, bokstavordtre->ordlager->les_antall(), post_komma->fsum);
+	nest_nest_siste_ord->til_fil(this, bokstavordtre->ordlager->les_antall(), nest_nest_siste_ord->fsum);
+	nest_siste_ord->til_fil(this, bokstavordtre->ordlager->les_antall(), nest_siste_ord->fsum);
+	siste_ord->til_fil(this, bokstavordtre->ordlager->les_antall(), siste_ord->fsum);
+	pre_tall->til_fil(this, bokstavordtre->ordlager->les_antall(), pre_tall->fsum);
+	post_tall->til_fil(this, bokstavordtre->ordlager->les_antall(), post_tall->fsum);
+	*/
+	
+	/*
+	for(int s = 0; s <ant_hyppige_listestat; ++s) {
+		bokstavordtre->folger_stat[s]->til_fil(this, bokstavordtre->lesantall(), bokstavordtre->folger_stat[s]->fsum);
+	}
+	*/
 
 	if (skriv_til_fil) {
 
@@ -682,17 +714,59 @@ void tekstkompressor::hs_stat2() {
 			bokstavordtre->folger_stat[s]->akkumuler();
 			bokstavordtre->folger_stat[s]->ixsort();
 			bokstavordtre->folger_stat[s]->finnmax();
-		}
 
+			bokstavordtre->folger_stat[s]->til_fil_ix(this, bokstavordtre->folger_stat[s]->fsum, bokstavordtre->folger_stat[s]);
+		}
+		
+		forste_ord->til_fil_ix(this, forste_ord->fsum, forste_ord);
+		andre_ord->til_fil_ix(this, andre_ord->fsum, andre_ord);	
+		tredje_ord->til_fil_ix(this, tredje_ord->fsum, tredje_ord);	
+		pre_komma->til_fil_ix(this, pre_komma->fsum, pre_komma);
+		post_komma->til_fil_ix(this, post_komma->fsum, post_komma);
+		nest_nest_siste_ord->til_fil_ix(this, nest_nest_siste_ord->fsum, nest_nest_siste_ord);
+		nest_siste_ord->til_fil_ix(this, nest_siste_ord->fsum, nest_siste_ord);
+		siste_ord->til_fil_ix(this, siste_ord->fsum, siste_ord);
+		pre_tall->til_fil_ix(this, pre_tall->fsum, pre_tall);
+		post_tall->til_fil_ix(this, post_tall->fsum, post_tall);
 
 	// ---   Skrive til filer:    ---
 	// p er sortert statistikk over ord som følger de hyppigste ordene.  raw er ikke sortert slik at frekvensene på hver rad tilhører ordet med samme ordnummer! 
-		FILE* p = fopen("statistikk.txt","w"); 
-		FILE* p_raw = fopen("raw_stat.txt", "w");
+
+		// Lager navn til stat-filene basert på innfilnavn og cutoff
+		char folder[] = "stats/";
+		char *filname = (char *) malloc(strlen(innfilnavn));
+		strcpy(filname, innfilnavn);
+		char *sp = filname;
+		while (*sp != '\0') {
+			if (*sp == '.') {
+				*sp = '\0';
+				break;
+			}
+			sp++;
+		}
+
+		char *folger_sort_name = (char *)malloc(256);
+		char *folger_raw_name = (char *)malloc(256);
+		char *pos_sort_name = (char *)malloc(256);
+		char *pos_raw_name = (char *)malloc(256);
+
+		sprintf(folger_sort_name, "%sfolger_sort_%s_%d.txt", folder, filname, cutoff);
+		sprintf(folger_raw_name, "%sfolger_raw_%s_%d.txt", folder, filname, cutoff);
+		sprintf(pos_sort_name, "%spos_sort_%s_%d.txt", folder, filname, cutoff);
+		sprintf(pos_raw_name, "%spos_raw_%s_%d.txt", folder, filname, cutoff);
+
+		FILE* p = fopen(folger_sort_name,"w"); 
+		FILE* p_raw = fopen(folger_raw_name, "w");
 
 		// pos og pos_raw er som p og raw men for statistikker relatert til posisjonen til ord i setningene. (ikke følger-ord). 
-		FILE* pos = fopen("pos_statistikk.txt","w"); 
-		FILE* pos_raw = fopen("pos_raw_stat.txt", "w");
+		FILE* pos = fopen(pos_sort_name,"w"); 
+		FILE* pos_raw = fopen(pos_raw_name, "w");
+
+		free(filname);
+		free(folger_sort_name);
+		free(folger_raw_name);
+		free(pos_sort_name);
+		free(pos_raw_name);
 
 		// Legge til antall hyppige og cut-off frekvens øverst i fil
 		fprintf(p, "%i/%i/%i\n", ant_hyppige_listestat, sum_hyppigste, bokstavordtre->lestotal());   // integer div?
@@ -1679,6 +1753,9 @@ int main(int argc, char *argv[]) {
 	int verbose = 0;
 	char const *innfilnavn;
 	char const *utfilnavn;
+	int cutoff = 5; // default value 5 for cutoff
+	int hyppig = 80;
+	printf("argc: %d\n", argc);
 	switch (argc) {
 		case 3:
 			if (*argv[1] == '-' || *argv[2] == '-') feil(bruk);
@@ -1696,12 +1773,29 @@ int main(int argc, char *argv[]) {
 				verbose = atoi(argv[3]+1);
 			} else feil(bruk);
 			break;
+		case 6:
+			if (*argv[1] == '-') {
+				innfilnavn = argv[2];
+				utfilnavn = argv[3];
+				verbose = atoi(argv[1]+1);
+				cutoff = atoi(argv[4]);
+				hyppig = atoi(argv[5]);
+				printf("Gitt cutoff %d, hyppig %d\n", cutoff, hyppig);
+			} else if (*argv[3] == '-') {
+				innfilnavn = argv[1];
+				utfilnavn = argv[2];
+				verbose = atoi(argv[3]+1);
+				cutoff = atoi(argv[4]);
+				hyppig = atoi(argv[5]);
+				printf("Gitt cutoff %d, hyppig %d\n", cutoff, hyppig);
+			} else feil(bruk);
+			break;
 		default:
 			feil(bruk);
 	}
 
 	try {
-		tekstkompressor tk(innfilnavn, utfilnavn, true, verbose);
+		tekstkompressor tk(innfilnavn, utfilnavn, true, verbose, cutoff, hyppig);
 		tk.pakk();
 	} catch (char const *meld) { printf("Feil: %s\n", meld); }
 }
@@ -4372,7 +4466,10 @@ assert(0 <= forrige_sep && forrige_sep <= maxsepnr);
 	//Utpakker har stats på nivå0, det som trengs for å
 	//utføre ixsort og pakke ut nivå1
 	dbg=1;
-	for (int i = 0; i <= maxsepnr; ++i) if (stat_sep0.tab[i]) stat_sep1[i]->til_fil_ix(this, stat_sep0.tab[i], &stat_sep0);
+	for (int i = 0; i <= maxsepnr; ++i) 
+		if (stat_sep0.tab[i]) 
+			stat_sep1[i]->til_fil_ix(this, stat_sep0.tab[i], &stat_sep0);
+
 	//fil: 2180217 (+6939, lite for 512x1539 :-) 2M totalt så langt
 	
 	//Statistikker skrevet, bruk dem og skriv filinnholdet:

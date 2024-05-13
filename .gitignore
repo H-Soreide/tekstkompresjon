@@ -1,0 +1,19 @@
+# build filer
+icu-pakk
+obj/
+
+# output fil
+out.z
+
+# statistikk filer
+pos_raw_stat.txt
+pos_statistikk.txt
+raw_stat.txt
+statistikk.txt
+stats/
+
+# testfil
+testfile.txt
+enwik8
+enwik9
+
