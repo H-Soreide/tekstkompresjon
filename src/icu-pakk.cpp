@@ -341,7 +341,7 @@ void tekstkompressor::hs_stat2() {
 	int setningslengder[ant_setn];
 
 	bool debug = false;
-	bool bruk_cut_off = false;  // Dersom 'false' vil alle ord telles selv om de ikke forekommer så mange ganger.
+	bool bruk_cut_off = true;  // Dersom 'false' vil alle ord telles selv om de ikke forekommer så mange ganger.
 	// Om satt til 'true' vil kun ord som forekommer ofte nok til at de til sammen utgjør x% (80%) av 'ordvolumet' bli talt opp. 
 	// 'false' her er kanskje en forutsetning for å kunne bruke geometrisk gejjnomsnitt ved koding av sannsynlighetene ?
 
@@ -660,7 +660,7 @@ void tekstkompressor::hs_stat2() {
 	printf("\nFør-tall:             Totalt:  %7i  Høyeste reksvens:  %6i  Nest høyeste: %6i\n", pre_tall->fsum, pre_tall->max_f, pre_tall->max_f2);
 	printf("\nEtter-tall:           Totalt:  %7i  Høyeste reksvens:  %6i  Nest høyeste: %6i\n", post_tall->fsum, post_tall->max_f, post_tall->max_f2);
 
-
+	/*
 	forste_ord->til_fil(this, bokstavordtre->ordlager->les_antall(), forste_ord->fsum);
 	andre_ord->til_fil(this, bokstavordtre->ordlager->les_antall(), andre_ord->fsum);
 	tredje_ord->til_fil(this, bokstavordtre->ordlager->les_antall(), tredje_ord->fsum);
@@ -671,6 +671,7 @@ void tekstkompressor::hs_stat2() {
 	siste_ord->til_fil(this, bokstavordtre->ordlager->les_antall(), siste_ord->fsum);
 	pre_tall->til_fil(this, bokstavordtre->ordlager->les_antall(), pre_tall->fsum);
 	post_tall->til_fil(this, bokstavordtre->ordlager->les_antall(), post_tall->fsum);
+	*/
 	
 	/*
 	for(int s = 0; s <ant_hyppige_listestat; ++s) {
@@ -700,7 +701,6 @@ void tekstkompressor::hs_stat2() {
 			bokstavordtre->folger_stat[s]->til_fil_ix(this, bokstavordtre->folger_stat[s]->fsum, bokstavordtre->folger_stat[s]);
 		}
 		
-		/*
 		forste_ord->til_fil_ix(this, forste_ord->fsum, forste_ord);
 		andre_ord->til_fil_ix(this, andre_ord->fsum, andre_ord);	
 		tredje_ord->til_fil_ix(this, tredje_ord->fsum, tredje_ord);	
@@ -711,7 +711,6 @@ void tekstkompressor::hs_stat2() {
 		siste_ord->til_fil_ix(this, siste_ord->fsum, siste_ord);
 		pre_tall->til_fil_ix(this, pre_tall->fsum, pre_tall);
 		post_tall->til_fil_ix(this, post_tall->fsum, post_tall);
-		*/
 
 	// ---   Skrive til filer:    ---
 	// p er sortert statistikk over ord som følger de hyppigste ordene.  raw er ikke sortert slik at frekvensene på hver rad tilhører ordet med samme ordnummer! 
