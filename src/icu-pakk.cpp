@@ -608,7 +608,7 @@ void tekstkompressor::hs_stat2() {
 	printf("\n\nFerdig med å fylle listestat, nå skrives det til fil dersom 'bool skriv_til_fil == true'. \n");
 
 	// ------  BOOL: skriv til fil eller ei? ------
-	bool skriv_til_fil = false;
+	bool skriv_til_fil = true;
 
 	forste_ord->akkumuler();
 	andre_ord->akkumuler();
@@ -831,7 +831,7 @@ void tekstkompressor::hs_stat2() {
 	// Del 4 -Kalle metode for beregning av entropi basert på statistikkene.
 	
 	// ------  BOOL: beregn filstørrelse med statistikkene eller ei? ------
-	bool entropi = true;   // Obs! Ikke kjør denne om skriving til fil er på (sorterte listestater)
+	bool entropi = true;  
 
 	if (entropi) beregn_entropi(forste_ord, andre_ord, tredje_ord, nest_nest_siste_ord, nest_siste_ord, 
 	siste_ord, pre_komma, post_komma, pre_tall, post_tall, bokstavordtre->folger_stat, ant_hyppige_listestat, setningslengder);
@@ -1103,10 +1103,10 @@ listestat *post_tall, listestat **folger_stat, int ant_folger_listestat, int *se
 				sanns_kontekst[ant_listestat_eks_folger + forrige->hyppig] =
 				((double) bokstavordtre->folger_stat[forrige->hyppig]->tab[bokstavordtre->oppslag(o->fra, o->til)] / bokstavordtre->folger_stat[forrige->hyppig]->fsum);				
 
-				if(db2) printf("sanns(folger) kontekst:  %i  / %i  sanns:  %f\n", 
+				if(db2) printf("sanns(folger) kontekst:  %i  / %i  sanns:  %f  \n", 
 				bokstavordtre->folger_stat[forrige->hyppig]->tab[bokstavordtre->oppslag(o->fra, o->til)] , 
 				bokstavordtre->folger_stat[forrige->hyppig]->fsum, 
-				sanns_kontekst[ant_listestat_eks_folger + forrige->hyppig]);   
+				sanns_kontekst[ant_listestat_eks_folger + forrige->hyppig]);  		
 
 				i_kontekst = true;
 				ant_kontekster++;
